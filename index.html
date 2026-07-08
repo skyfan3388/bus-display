@@ -7,7 +7,6 @@
 
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#111827">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
 
 <style>
 html,body{
@@ -53,54 +52,9 @@ font-weight:700;
 cursor:pointer;
 }
 
-.route-card{
-display:flex;
-justify-content:space-between;
-align-items:center;
-padding:16px;
-margin-bottom:12px;
-border-radius:18px;
-background:rgba(255,255,255,0.12);
-backdrop-filter:blur(10px);
-}
-
-.route-left{
-display:flex;
-flex-direction:column;
-}
-
-.route-number{
-font-size:26px;
-font-weight:900;
-}
-
-.route-stop{
-font-size:14px;
-opacity:0.8;
-}
-
-.route-right{
-display:flex;
-align-items:center;
-gap:12px;
-}
-
-.time{
-font-size:18px;
-font-weight:700;
-}
-
-.delete-btn{
-background:#ff4d4f;
-padding:6px 10px;
-border-radius:10px;
-font-size:16px;
-}
-
 .message{
 margin-top:8px;
 font-size:14px;
-opacity:0.9;
 color:#ffd166;
 }
 </style>
@@ -126,7 +80,6 @@ color:#ffd166;
 const SERVICE_TYPE="1";
 let ROUTES = JSON.parse(localStorage.getItem("routes")) || [];
 let etaData = {};
-let currentDirection = 1;
 
 function save(){
 localStorage.setItem("routes",JSON.stringify(ROUTES));
@@ -139,9 +92,8 @@ hour:'2-digit',minute:'2-digit',hour12:false});
 setInterval(updateClock,1000);
 updateClock();
 
-/* ✅ 即時載入站 */
 document.getElementById("routeInput")
-.addEventListener("input",loadStops);
+.addEventListener("change",loadStops);
 
 async function loadStops(){
 const route=document.getElementById("routeInput").value.trim();
@@ -153,20 +105,28 @@ msg.innerText="";
 
 if(!route) return;
 
-let found=false;
-
-for(let dir of [1,2]){
 try{
-const res=await fetch(
-`https://data.etabus.gov.hk/v1/transport/kmb/route-stop/${route}/${dir}`
+/* ✅ 先查 route 是否存在 */
+const routeCheck = await fetch(
+`https://data.etabus.gov.hk/v1/transport/kmb/route/${route}`
 );
-const result=await res.json();
+const routeData = await routeCheck.json();
 
-if(result.data && result.data.length>0){
-currentDirection=dir;
-found=true;
+if(!routeData.data || routeData.data.length===0){
+msg.innerText="找不到此路線";
+return;
+}
 
-for(const s of result.data){
+/* ✅ 用第一個方向 */
+const direction = routeData.data[0].bound;
+
+/* ✅ 抓站 */
+const res=await fetch(
+`https://data.etabus.gov.hk/v1/transport/kmb/route-stop/${route}/${direction}`
+);
+const data=await res.json();
+
+for(const s of data.data){
 const stopRes=await fetch(
 `https://data.etabus.gov.hk/v1/transport/kmb/stop/${s.stop}`
 );
@@ -178,19 +138,13 @@ opt.textContent=`${s.seq}. ${stopData.data.name_tc}`;
 select.appendChild(opt);
 }
 
-break;
-}
-}catch{}
-}
-
-if(!found){
-msg.innerText="找不到此路線";
-return;
-}
-
 if(select.options.length>0){
 select.selectedIndex=0;
-msg.innerText="已載入站點";
+msg.innerText="已載入站點 ✅";
+}
+
+}catch(e){
+msg.innerText="讀取失敗";
 }
 }
 
@@ -202,7 +156,7 @@ const stopName=stopSelect.selectedOptions[0]?.text;
 const msg=document.getElementById("message");
 
 if(!route || !stopId){
-msg.innerText="請先輸入有效路線";
+msg.innerText="請先載入站點";
 return;
 }
 
@@ -210,12 +164,6 @@ ROUTES.push({route,stopId,stopName});
 save();
 msg.innerText="已加入 ✅";
 fetchETA();
-}
-
-function deleteRoute(index){
-ROUTES.splice(index,1);
-save();
-render();
 }
 
 function clearAll(){
@@ -231,7 +179,7 @@ const res=await fetch(
 `https://data.etabus.gov.hk/v1/transport/kmb/eta/${r.stopId}/${r.route}/${SERVICE_TYPE}`
 );
 const data=await res.json();
-etaData[r.route]=data.data.slice(0,2).map(x=>x.eta);
+etaData[r.route]=data.data.slice(0,1).map(x=>x.eta);
 }catch{
 etaData[r.route]=[];
 }
@@ -250,23 +198,18 @@ list.innerHTML="";
 
 ROUTES.forEach((r,index)=>{
 const card=document.createElement("div");
-card.className="route-card";
-
 card.innerHTML=`
-<div class="route-left">
-<div class="route-number">${r.route}</div>
-<div class="route-stop">${r.stopName||""}</div>
+<div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+<div>
+<div style="font-size:24px;font-weight:800">${r.route}</div>
+<div style="font-size:13px;opacity:0.8">${r.stopName}</div>
 </div>
-
-<div class="route-right">
-<div class="time">
+<div style="font-size:18px;font-weight:700">
 ${etaData[r.route] ?
 getMin(etaData[r.route][0])+" 分" : "--"}
 </div>
-<button class="delete-btn" onclick="deleteRoute(${index})">🗑</button>
 </div>
 `;
-
 list.appendChild(card);
 });
 }
@@ -274,7 +217,6 @@ list.appendChild(card);
 fetchETA();
 setInterval(fetchETA,15000);
 
-/* ✅ 註冊 service worker */
 if("serviceWorker" in navigator){
 navigator.serviceWorker.register("service-worker.js");
 }
