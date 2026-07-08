@@ -212,6 +212,9 @@ row.innerHTML=`
 <div>${m1===null?'--':m1+" 分"}</div>
 <div>${m2===null?'--':m2+" 分"}</div>
 <div>${stopNames[r.stopId]||'--'}</div>
+<div>
+  <button onclick="deleteRoute('${r.route}','${r.stopId}')">刪除</button>
+</div>
 `;
 
 busList.appendChild(row);
