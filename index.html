@@ -9,13 +9,11 @@
 <meta name="theme-color" content="#111827">
 
 <style>
-html,body{
+body{
 margin:0;
-padding:0;
 font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial;
 background:linear-gradient(135deg,#1f2937,#111827);
 color:#fff;
-min-height:100vh;
 }
 
 .topbar{
@@ -32,7 +30,6 @@ backdrop-filter:blur(12px);
 border-radius:20px;
 padding:16px;
 margin:16px;
-box-shadow:0 8px 30px rgba(0,0,0,0.3);
 }
 
 input,select{
@@ -52,43 +49,16 @@ font-weight:700;
 cursor:pointer;
 }
 
-.route-card{
-display:flex;
-justify-content:space-between;
-align-items:center;
-padding:16px;
-margin-bottom:12px;
-border-radius:18px;
-background:rgba(255,255,255,0.12);
-backdrop-filter:blur(10px);
-}
-
-.route-number{
-font-size:24px;
-font-weight:900;
-}
-
-.route-stop{
-font-size:13px;
-opacity:0.8;
-}
-
-.time{
-font-size:18px;
-font-weight:700;
-}
-
-.delete-btn{
-background:#ff4d4f;
-padding:6px 10px;
-border-radius:10px;
-font-size:16px;
-}
-
 .message{
 margin-top:8px;
 font-size:14px;
 color:#ffd166;
+}
+
+.route-card{
+display:flex;
+justify-content:space-between;
+margin-bottom:12px;
 }
 </style>
 </head>
@@ -124,7 +94,7 @@ hour:'2-digit',minute:'2-digit',hour12:false});
 setInterval(updateClock,1000);
 updateClock();
 
-/* ✅ 載入站點（修正 API 格式） */
+/* ✅ 真正穩定 loadStops */
 document.getElementById("routeInput")
 .addEventListener("change",loadStops);
 
@@ -138,37 +108,29 @@ msg.innerText="";
 
 if(!route) return;
 
+let found=false;
+
+/* ✅ 試 O / I */
+for(const bound of ["O","I"]){
+
 try{
-
-/* 1️⃣ 查 route */
-const routeCheck = await fetch(
-`https://data.etabus.gov.hk/v1/transport/kmb/route/${route}`
+const res = await fetch(
+`https://data.etabus.gov.hk/v1/transport/kmb/route-stop/${route}/${bound}/1`
 );
-const routeData = await routeCheck.json();
 
-if(!routeData.data || routeData.data.length===0){
-msg.innerText="找不到此路線";
-return;
-}
+if(!res.ok) continue;
 
-/* 2️⃣ 取得 bound (O / I) + service_type */
-const bound = routeData.data[0].bound;
-const serviceType = routeData.data[0].service_type;
+const data = await res.json();
 
-/* 3️⃣ 正確 route-stop API */
+if(data.data && data.data.length>0){
+
+for(const s of data.data){
+
 const stopRes = await fetch(
-`https://data.etabus.gov.hk/v1/transport/kmb/route-stop/${route}/${bound}/${serviceType}`
-);
-
-const stopData = await stopRes.json();
-
-for(const s of stopData.data){
-
-const singleStop = await fetch(
 `https://data.etabus.gov.hk/v1/transport/kmb/stop/${s.stop}`
 );
 
-const stopInfo = await singleStop.json();
+const stopInfo = await stopRes.json();
 
 const opt=document.createElement("option");
 opt.value=s.stop;
@@ -176,15 +138,19 @@ opt.textContent=`${s.seq}. ${stopInfo.data.name_tc}`;
 select.appendChild(opt);
 }
 
-if(select.options.length>0){
-select.selectedIndex=0;
-msg.innerText="已載入站點 ✅";
+found=true;
+break;
+}
+}catch(e){}
 }
 
-}catch(e){
-msg.innerText="API 讀取失敗";
-console.error(e);
+if(!found){
+msg.innerText="找不到此路線";
+return;
 }
+
+select.selectedIndex=0;
+msg.innerText="已載入站點 ✅";
 }
 
 function addRoute(){
@@ -235,20 +201,18 @@ function render(){
 const list=document.getElementById("list");
 list.innerHTML="";
 
-ROUTES.forEach((r,index)=>{
+ROUTES.forEach(r=>{
 const card=document.createElement("div");
 card.className="route-card";
 
 card.innerHTML=`
 <div>
-<div class="route-number">${r.route}</div>
-<div class="route-stop">${r.stopName}</div>
+<div style="font-size:22px;font-weight:800">${r.route}</div>
+<div style="font-size:13px;opacity:0.8">${r.stopName}</div>
 </div>
-<div>
-<div class="time">
+<div style="font-size:18px;font-weight:700">
 ${etaData[r.route] ?
 getMin(etaData[r.route][0])+" 分" : "--"}
-</div>
 </div>
 `;
 
