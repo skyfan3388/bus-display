@@ -25,7 +25,7 @@ html, body {
     padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* 整頁結構 */
+/* 整頁 */
 body {
     display: flex;
     flex-direction: column;
@@ -68,19 +68,19 @@ body {
     font-weight: 700;
 }
 
-/* 主內容 */
+/* 主容器 */
 .container {
     flex: 1;
     display: flex;
     flex-direction: column;
 }
 
-/* 每一行 */
+/* 每行 */
 .row {
     display: grid;
     grid-template-columns: 1.5fr 2.2fr 1fr 1fr;
     align-items: center;
-    padding: 3vh 4vw;
+    padding: 2vh 4vw;
     border-top: 1px solid rgba(255,255,255,0.06);
 }
 
@@ -106,15 +106,18 @@ body {
 
 .red { color: #ff4c4c; }
 
-/* ✅ 橫向真正撐滿版本 */
+/* ===============================
+   ✅ 橫向專業撐滿版本
+================================ */
 @media (orientation: landscape) {
 
     body {
         height: 100vh;
+        justify-content: center;   /* 垂直置中 */
     }
 
     .header {
-        padding: 1.5vh 4vw;
+        padding: 1vh 4vw;
     }
 
     .stop { font-size: 3vh; }
@@ -124,27 +127,38 @@ body {
 
     .container {
         flex: 1;
-        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        width: 100%;
+        max-width: 1400px;   /* 左右置中 */
+        margin: 0 auto;
     }
 
-    /* ✅ 每一行平均高度 */
+    /* ✅ 標題固定高度 */
+    .header-row {
+        flex: 0;
+        height: 8vh;
+        font-size: 3vh;
+    }
+
+    /* ✅ 巴士列平均分剩餘高度 */
+    #busList {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
     .row {
         flex: 1;
         display: grid;
-        grid-template-columns: 1.8fr 2.2fr 1fr 1fr;
-        align-items: center;
-        padding: 0 6vw;
+        grid-template-columns: 2fr 2fr 1fr 1fr;
+        place-items: center;  /* 上下左右置中 */
+        padding: 0 4vw;
     }
 
-    .header-row {
-        font-size: 4vh;
-    }
-
-    /* ✅ 路線更大 */
     .route { font-size: 6vh; }
-
     .dest { font-size: 4.5vh; }
-
     .minutes { font-size: 5vh; }
 }
 </style>
@@ -172,7 +186,7 @@ body {
         <div>再下一班</div>
     </div>
 
-    <div id="busList" style="flex:1; display:flex; flex-direction:column;"></div>
+    <div id="busList"></div>
 
 </div>
 
@@ -207,7 +221,6 @@ function render() {
     ROUTES.forEach(r => {
         const row = document.createElement("div");
         row.className = "row";
-        row.style.flex = "1";
 
         const etas = etaData[r.route] || [];
         const m1 = etas[0] ? getMinutes(etas[0]) : "--";
@@ -219,6 +232,7 @@ function render() {
             <div class="minutes ${m1<=3?'red':''}">${m1}m</div>
             <div class="minutes ${m2<=3?'red':''}">${m2}m</div>
         `;
+
         list.appendChild(row);
     });
 }
@@ -227,7 +241,7 @@ async function fetchETA() {
     for (const r of ROUTES) {
         try {
             const res = await fetch(
-              `https://data.etabus.gov.hk/v1/transport/kmb/eta/${STOP_ID}/${r.route}/${SERVICE_TYPE}`
+              \`https://data.etabus.gov.hk/v1/transport/kmb/eta/\${STOP_ID}/\${r.route}/\${SERVICE_TYPE}\`
             );
             const data = await res.json();
             const filtered = data.data.filter(item =>
@@ -253,10 +267,10 @@ async function fetchWeather() {
         const iconCode = data.icon[0];
 
         document.getElementById("weatherText").innerText =
-          `${temp}°C | ${humidity}%`;
+          \`\${temp}°C | \${humidity}%\`;
 
         document.getElementById("weatherIcon").src =
-          `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${iconCode}.png`;
+          \`https://www.hko.gov.hk/images/HKOWxIconOutline/pic\${iconCode}.png\`;
 
     } catch {}
 }
