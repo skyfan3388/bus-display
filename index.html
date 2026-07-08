@@ -1,183 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>通勤 Widget Pro</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ff6b6b">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<style>
+html,body{
+margin:0;
+padding:0;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial;
+background:linear-gradient(135deg,#1f2937,#111827);
+color:#fff;
+min-height:100vh;
+}
+
+.topbar{
+padding:16px;
+font-weight:800;
+font-size:20px;
+display:flex;
+justify-content:space-between;
+}
+
+.glass{
+background:rgba(255,255,255,0.08);
+backdrop-filter:blur(12px);
+border-radius:20px;
+padding:16px;
+margin:16px;
+box-shadow:0 8px 30px rgba(0,0,0,0.3);
+}
+
+input,select{
+padding:8px;
+border-radius:10px;
+border:none;
+outline:none;
+}
+
+button{
+padding:8px 14px;
+border:none;
+border-radius:12px;
+background:#ff6b6b;
+color:#fff;
+font-weight:700;
+cursor:pointer;
+}
+
+.route-card{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:14px;
+margin-bottom:10px;
+border-radius:16px;
+background:rgba(255,255,255,0.12);
+backdrop-filter:blur(8px);
+cursor:grab;
+}
+
+.route-number{
+font-size:26px;
+font-weight:900;
+}
+
+.time{
+font-size:18px;
+}
+
+.dragging{
+opacity:0.5;
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+<div>📱 通勤 Widget Pro</div>
+<div id="clock"></div>
+</div>
+
+<div class="glass">
+<input id="routeInput" placeholder="輸入路線">
+<select id="stopSelect"></select>
+<button onclick="addRoute()">加入</button>
+</div>
+
+<div id="list" class="glass"></div>
+
 <script>
 const SERVICE_TYPE="1";
+let ROUTES=JSON.parse(localStorage.getItem("routes"))||[];
+let etaData={};
+let stopNames={};
 
-let ROUTES = JSON.parse(localStorage.getItem("routes")) || [
-  {route:"38",dest:"平田",stopId:"C3672D8D28801773"}
-];
-
-let etaData = {};
-let stopNames = {};
-let notified = {};
-
-function routeKey(r){
-  return `${r.route}_${r.stopId}_${r.dest}`;
-}
-
-function saveRoutes(){
-  localStorage.setItem("routes", JSON.stringify(ROUTES));
-}
-
-function addRoute(){
-  const r = document.getElementById("routeInput").value.trim();
-  const d = document.getElementById("destInput").value.trim();
-  const s = document.getElementById("stopInput").value.trim();
-
-  if(!r || !d || !s) return;
-
-  // ✅ 防止重複加入
-  const exists = ROUTES.some(x =>
-    x.route === r && x.stopId === s && x.dest === d
-  );
-
-  if(exists){
-    alert("已經存在這條路線");
-    return;
-  }
-
-  ROUTES.push({route:r,dest:d,stopId:s});
-  saveRoutes();
-  fetchETA();
-}
-
-function deleteRoute(route, stopId, dest){
-  ROUTES = ROUTES.filter(r =>
-    !(r.route === route && r.stopId === stopId && r.dest === dest)
-  );
-
-  delete notified[`${route}_${stopId}_${dest}`];
-
-  saveRoutes();
-  fetchETA();
-}
-
-function clearAll(){
-  ROUTES = [];
-  notified = {};
-  saveRoutes();
-  render();
+function save(){
+localStorage.setItem("routes",JSON.stringify(ROUTES));
 }
 
 function updateClock(){
-  const now=new Date();
-  clock.innerText=now.toLocaleTimeString('zh-HK',{
-    hour:'2-digit',
-    minute:'2-digit',
-    hour12:false
-  });
-  date.innerText=now.toLocaleDateString('zh-HK');
+clock.innerText=new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit',hour12:false});
+}
+setInterval(updateClock,1000);
+updateClock();
+
+document.getElementById("routeInput").addEventListener("change",loadStops);
+
+async function loadStops(){
+const route=document.getElementById("routeInput").value.trim();
+if(!route)return;
+
+const res=await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/route-stop/${route}/1`);
+const data=await res.json();
+
+const select=document.getElementById("stopSelect");
+select.innerHTML="";
+
+for(const s of data.data){
+const stopRes=await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop/${s.stop}`);
+const stopData=await stopRes.json();
+
+const opt=document.createElement("option");
+opt.value=s.stop;
+opt.textContent=`${s.seq}. ${stopData.data.name_tc}`;
+select.appendChild(opt);
+}
 }
 
-function getMinutes(t){
-  const diff=(new Date(t)-new Date())/60000;
-  if(diff<-1) return null;
-  return Math.max(0,Math.floor(diff));
-}
+function addRoute(){
+const route=document.getElementById("routeInput").value.trim();
+const stopId=document.getElementById("stopSelect").value;
+const stopName=document.getElementById("stopSelect").selectedOptions[0]?.text;
 
-async function fetchStopName(id){
-  if(stopNames[id]) return;
-  try{
-    const res=await fetch(
-      `https://data.etabus.gov.hk/v1/transport/kmb/stop/${id}`
-    );
-    const data=await res.json();
-    stopNames[id]=data.data.name_tc;
-  }catch{
-    stopNames[id]="--";
-  }
+if(!route||!stopId)return;
+
+ROUTES.push({route,stopId,stopName});
+save();
+fetchETA();
 }
 
 async function fetchETA(){
+for(const r of ROUTES){
+const res=await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/eta/${r.stopId}/${r.route}/${SERVICE_TYPE}`);
+const data=await res.json();
+etaData[r.route]=data.data.slice(0,2).map(x=>x.eta);
+}
+render();
+}
+setInterval(fetchETA,15000);
 
-  await Promise.all(
-    [...new Set(ROUTES.map(r=>r.stopId))]
-      .map(fetchStopName)
-  );
-
-  const tasks=ROUTES.map(async r=>{
-    try{
-      const res=await fetch(
-        `https://data.etabus.gov.hk/v1/transport/kmb/eta/${r.stopId}/${r.route}/${SERVICE_TYPE}`
-      );
-      const data=await res.json();
-      const filtered=data.data.filter(x=>x.dest_tc.includes(r.dest));
-
-      return {
-        key:routeKey(r),
-        eta:filtered.slice(0,2).map(x=>x.eta)
-      };
-    }catch{
-      return {key:routeKey(r),eta:[]};
-    }
-  });
-
-  const results=await Promise.all(tasks);
-
-  results.forEach(r=>{
-    etaData[r.key]=r.eta;
-  });
-
-  lastUpdate.innerText=new Date().toLocaleTimeString('zh-HK',{
-    hour:'2-digit',
-    minute:'2-digit'
-  });
-
-  render();
+function getMin(t){
+const diff=(new Date(t)-new Date())/60000;
+return Math.max(0,Math.floor(diff));
 }
 
 function render(){
+const list=document.getElementById("list");
+list.innerHTML="";
 
-  busList.innerHTML="";
+ROUTES.forEach((r,index)=>{
+const card=document.createElement("div");
+card.className="route-card";
+card.draggable=true;
 
-  if(ROUTES.length===0){
-    busList.innerHTML="<div style='padding:20px'>暫時沒有路線</div>";
-    return;
-  }
+card.addEventListener("dragstart",()=>card.classList.add("dragging"));
+card.addEventListener("dragend",()=>{
+card.classList.remove("dragging");
+save();
+});
 
-  ROUTES.forEach(r=>{
+card.innerHTML=`
+<div>
+<div class="route-number">${r.route}</div>
+<div>${r.stopName||""}</div>
+</div>
+<div class="time">
+${etaData[r.route]?
+getMin(etaData[r.route][0])+" 分": "--"}
+</div>
+<button onclick="deleteRoute(${index})">🗑</button>
+`;
 
-    const key = routeKey(r);
-    const etas = etaData[key] || [];
+card.addEventListener("dragover",e=>{
+e.preventDefault();
+const dragging=document.querySelector(".dragging");
+if(dragging!==card){
+list.insertBefore(dragging,card);
+const newOrder=[...list.children].map(el=>ROUTES[[...list.children].indexOf(el)]);
+ROUTES=newOrder;
+}
+});
 
-    const m1 = etas[0] ? getMinutes(etas[0]) : null;
-    const m2 = etas[1] ? getMinutes(etas[1]) : null;
-
-    let urgent = m1===0 || m1===1;
-
-    if(urgent && !notified[key]){
-      if(navigator.vibrate){
-        navigator.vibrate([200,100,200]);
-      }
-      notified[key]=true;
-    }
-
-    const row=document.createElement("div");
-    row.className="row";
-
-    row.innerHTML=`
-      <div class="route-box ${urgent?'urgent-box':''}">
-        ${r.route}
-      </div>
-      <div>${m1===null?'--':m1+" 分"}</div>
-      <div>${m2===null?'--':m2+" 分"}</div>
-      <div>${stopNames[r.stopId]||'--'}</div>
-      <div>
-        <button onclick="deleteRoute('${r.route}','${r.stopId}','${r.dest}')">
-          刪除
-        </button>
-      </div>
-    `;
-
-    busList.appendChild(row);
-  });
+list.appendChild(card);
+});
 }
 
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("service-worker.js");
-}
-
-updateClock();
+function deleteRoute(i){
+ROUTES.splice(i,1);
+save();
 fetchETA();
-setInterval(updateClock,1000);
-setInterval(render,1000);
-setInterval(fetchETA,15000);
+}
+
+fetchETA();
 </script>
+
+</body>
+</html>
