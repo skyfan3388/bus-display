@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>通勤 Widget Pro</title>
 
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#111827">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
 <style>
 html,body{
 margin:0;
@@ -212,9 +216,7 @@ card.innerHTML=`
 ${etaData[r.route] ?
 getMin(etaData[r.route][0])+" 分" : "--"}
 </div>
-<button class="delete-btn" onclick="deleteRoute(${index})">
-🗑
-</button>
+<button class="delete-btn" onclick="deleteRoute(${index})">🗑</button>
 </div>
 `;
 
@@ -224,6 +226,10 @@ list.appendChild(card);
 
 fetchETA();
 setInterval(fetchETA,15000);
+
+if("serviceWorker" in navigator){
+navigator.serviceWorker.register("service-worker.js");
+}
 </script>
 
 </body>
