@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Bus Display Pro</title>
+
+<style>
+body {
+    margin: 0;
+    background: black;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+.header {
+    background: #2f7d4e;
+    padding: 20px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 40px;
+    font-weight: bold;
+}
+
+.left-header {
+    display: flex;
+    gap: 40px;
+    align-items: center;
+}
+
+.time {
+    font-size: 60px;
+}
+
+.weather {
+    font-size: 30px;
+    color: #ddd;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 30px;
+    border-bottom: 1px solid #333;
+}
+
+th {
+    color: #aaa;
+    font-size: 24px;
+}
+
+.route {
+    font-size: 60px;
+    font-weight: bold;
+    color: #4CAF50;
+}
+
+.minutes {
+    font-size: 70px;
+    font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+    <div class="left-header">
+        <div>Hi</div>
+        <div class="weather" id="weather">--°C</div>
+    </div>
+    <div class="time" id="clock"></div>
+</div>
+
+<table class="table">
+<tr>
+<th>路線</th>
+<th>終點</th>
+<th>下一班</th>
+<th>再下一班</th>
+</tr>
+<tbody id="busTable">
+</tbody>
+</table>
+
+<script>
+const STOP_ID = "C3672D8D28801773";
+const SERVICE_TYPE = "1";
+
+// ✅ 在這裡設定多路線
+const ROUTES = [
+    { route: "38", dest: "平田" },
+    { route: "42C", dest: "藍田站" },
+	{ route: "40P", dest: "觀塘碼頭" }
+];
+
+let etaData = {};
+
+function updateClock() {
+    const now = new Date();
+    document.getElementById("clock").innerText =
+        now.toLocaleTimeString('zh-HK', {hour: '2-digit', minute:'2-digit'});
+}
+
+function getSecondsLeft(etaTime) {
+    const now = new Date();
+    const eta = new Date(etaTime);
+    return Math.max(0, Math.floor((eta - now) / 1000));
+}
+
+function updateCountdown() {
+    ROUTES.forEach(r => {
+        const key = r.route;
+        if (!etaData[key]) return;
+
+        const row = document.getElementById("row-" + key);
+        const etaCells = row.querySelectorAll(".eta");
+
+        etaData[key].forEach((etaTime, index) => {
+            const sec = getSecondsLeft(etaTime);
+            const min = Math.floor(sec / 60);
+
+            etaCells[index].innerText = min + "m";
+
+            if (min <= 3) {
+                etaCells[index].style.color = "red";
+            } else {
+                etaCells[index].style.color = "white";
+            }
+        });
+    });
+}
+
+async function fetchETA() {
+    for (const r of ROUTES) {
+        try {
+            const response = await fetch(
+                `https://data.etabus.gov.hk/v1/transport/kmb/eta/${STOP_ID}/${r.route}/${SERVICE_TYPE}`
+            );
+            const result = await response.json();
+
+            const filtered = result.data.filter(item =>
+                item.dest_tc === r.dest
+            );
+
+            etaData[r.route] = filtered.slice(0,2).map(item => item.eta);
+
+        } catch (error) {
+            etaData[r.route] = [];
+        }
+    }
+}
+
+async function fetchWeather() {
+    try {
+        const response = await fetch(
+            "https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc"
+        );
+        const data = await response.json();
+
+        const temp = data.temperature.data[1].value; // 香港區
+        const humidity = data.humidity.data[0].value;
+
+        document.getElementById("weather").innerText =
+            `${temp}°C  |  ${humidity}%`;
+    } catch (error) {
+        document.getElementById("weather").innerText = "--";
+    }
+}
+
+function buildTable() {
+    const table = document.getElementById("busTable");
+    table.innerHTML = "";
+
+    ROUTES.forEach(r => {
+        const row = document.createElement("tr");
+        row.id = "row-" + r.route;
+
+        row.innerHTML = `
+            <td class="route">${r.route}</td>
+            <td>${r.dest}</td>
+            <td class="minutes eta">--</td>
+            <td class="minutes eta">--</td>
+        `;
+
+        table.appendChild(row);
+    });
+}
+
+buildTable();
+updateClock();
+fetchETA();
+fetchWeather();
+
+setInterval(updateClock, 1000);
+setInterval(updateCountdown, 1000);
+setInterval(fetchETA, 15000);
+setInterval(fetchWeather, 600000); // 10分鐘更新天氣
+</script>
+
+</body>
+</html>
