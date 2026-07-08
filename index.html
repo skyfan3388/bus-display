@@ -52,6 +52,39 @@ font-weight:700;
 cursor:pointer;
 }
 
+.route-card{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:16px;
+margin-bottom:12px;
+border-radius:18px;
+background:rgba(255,255,255,0.12);
+backdrop-filter:blur(10px);
+}
+
+.route-number{
+font-size:24px;
+font-weight:900;
+}
+
+.route-stop{
+font-size:13px;
+opacity:0.8;
+}
+
+.time{
+font-size:18px;
+font-weight:700;
+}
+
+.delete-btn{
+background:#ff4d4f;
+padding:6px 10px;
+border-radius:10px;
+font-size:16px;
+}
+
 .message{
 margin-top:8px;
 font-size:14px;
@@ -77,7 +110,6 @@ color:#ffd166;
 <div id="list" class="glass"></div>
 
 <script>
-const SERVICE_TYPE="1";
 let ROUTES = JSON.parse(localStorage.getItem("routes")) || [];
 let etaData = {};
 
@@ -92,6 +124,7 @@ hour:'2-digit',minute:'2-digit',hour12:false});
 setInterval(updateClock,1000);
 updateClock();
 
+/* ✅ 載入站點（修正 API 格式） */
 document.getElementById("routeInput")
 .addEventListener("change",loadStops);
 
@@ -106,7 +139,8 @@ msg.innerText="";
 if(!route) return;
 
 try{
-/* ✅ 先查 route 是否存在 */
+
+/* 1️⃣ 查 route */
 const routeCheck = await fetch(
 `https://data.etabus.gov.hk/v1/transport/kmb/route/${route}`
 );
@@ -117,24 +151,28 @@ msg.innerText="找不到此路線";
 return;
 }
 
-/* ✅ 用第一個方向 */
-const direction = routeData.data[0].bound;
+/* 2️⃣ 取得 bound (O / I) + service_type */
+const bound = routeData.data[0].bound;
+const serviceType = routeData.data[0].service_type;
 
-/* ✅ 抓站 */
-const res=await fetch(
-`https://data.etabus.gov.hk/v1/transport/kmb/route-stop/${route}/${direction}`
+/* 3️⃣ 正確 route-stop API */
+const stopRes = await fetch(
+`https://data.etabus.gov.hk/v1/transport/kmb/route-stop/${route}/${bound}/${serviceType}`
 );
-const data=await res.json();
 
-for(const s of data.data){
-const stopRes=await fetch(
+const stopData = await stopRes.json();
+
+for(const s of stopData.data){
+
+const singleStop = await fetch(
 `https://data.etabus.gov.hk/v1/transport/kmb/stop/${s.stop}`
 );
-const stopData=await stopRes.json();
+
+const stopInfo = await singleStop.json();
 
 const opt=document.createElement("option");
 opt.value=s.stop;
-opt.textContent=`${s.seq}. ${stopData.data.name_tc}`;
+opt.textContent=`${s.seq}. ${stopInfo.data.name_tc}`;
 select.appendChild(opt);
 }
 
@@ -144,7 +182,8 @@ msg.innerText="已載入站點 ✅";
 }
 
 }catch(e){
-msg.innerText="讀取失敗";
+msg.innerText="API 讀取失敗";
+console.error(e);
 }
 }
 
@@ -176,7 +215,7 @@ async function fetchETA(){
 for(const r of ROUTES){
 try{
 const res=await fetch(
-`https://data.etabus.gov.hk/v1/transport/kmb/eta/${r.stopId}/${r.route}/${SERVICE_TYPE}`
+`https://data.etabus.gov.hk/v1/transport/kmb/eta/${r.stopId}/${r.route}/1`
 );
 const data=await res.json();
 etaData[r.route]=data.data.slice(0,1).map(x=>x.eta);
@@ -198,18 +237,21 @@ list.innerHTML="";
 
 ROUTES.forEach((r,index)=>{
 const card=document.createElement("div");
+card.className="route-card";
+
 card.innerHTML=`
-<div style="display:flex;justify-content:space-between;margin-bottom:12px;">
 <div>
-<div style="font-size:24px;font-weight:800">${r.route}</div>
-<div style="font-size:13px;opacity:0.8">${r.stopName}</div>
+<div class="route-number">${r.route}</div>
+<div class="route-stop">${r.stopName}</div>
 </div>
-<div style="font-size:18px;font-weight:700">
+<div>
+<div class="time">
 ${etaData[r.route] ?
 getMin(etaData[r.route][0])+" 分" : "--"}
 </div>
 </div>
 `;
+
 list.appendChild(card);
 });
 }
