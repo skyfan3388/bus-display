@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8">
 
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Bus Display">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
 <title>Transit Display</title>
 
@@ -18,14 +17,8 @@ html, body {
     background: #0f1b2d;
     color: #e6eefc;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* 整頁結構 */
 body {
     display: flex;
     flex-direction: column;
@@ -40,27 +33,9 @@ body {
     padding: 2vh 4vw;
 }
 
-.left {
-    display: flex;
-    flex-direction: column;
-    gap: 1vh;
-}
-
-.stop {
+.stop-title {
     font-size: 5vw;
     font-weight: 600;
-}
-
-.weather {
-    font-size: 3.5vw;
-    display: flex;
-    align-items: center;
-    gap: 2vw;
-    color: #cfe2ff;
-}
-
-.weather img {
-    height: 4vw;
 }
 
 .time {
@@ -68,19 +43,19 @@ body {
     font-weight: 700;
 }
 
-/* 主內容 */
+/* Container */
 .container {
     flex: 1;
     display: flex;
     flex-direction: column;
 }
 
-/* 每一行 */
+/* Row */
 .row {
     display: grid;
-    grid-template-columns: 1.5fr 2.2fr 1fr 1fr;
+    grid-template-columns: 1.2fr 2fr 2fr 1fr 1fr;
     align-items: center;
-    padding: 3vh 4vw;
+    padding: 2vh 4vw;
     border-top: 1px solid rgba(255,255,255,0.06);
 }
 
@@ -95,6 +70,11 @@ body {
     color: #39ffb6;
 }
 
+.stop-name {
+    font-size: 5vw;
+    color: #9ecbff;
+}
+
 .dest {
     font-size: 6vw;
 }
@@ -106,46 +86,57 @@ body {
 
 .red { color: #ff4c4c; }
 
-/* ✅ 橫向真正撐滿版本 */
+/* =========================
+   橫向專業版本
+========================= */
 @media (orientation: landscape) {
 
     body {
         height: 100vh;
+        justify-content: center;
     }
 
     .header {
-        padding: 1.5vh 4vw;
+        padding: 1vh 4vw;
     }
 
-    .stop { font-size: 3vh; }
-    .weather { font-size: 2vh; }
-    .weather img { height: 2.5vh; }
+    .stop-title { font-size: 3vh; }
     .time { font-size: 6vh; }
 
     .container {
         flex: 1;
-        height: 100%;
-    }
-
-    /* ✅ 每一行平均高度 */
-    .row {
-        flex: 1;
-        display: grid;
-        grid-template-columns: 2fr 2fr 1fr 1fr;
-        align-items: center;
-        padding: 0 6vw;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        width: 100%;
+        max-width: 1500px;
+        margin: 0 auto;
     }
 
     .header-row {
-        font-size: 4vh;
+        flex: 0;
+        height: 7vh;
+        font-size: 2.8vh;
     }
 
-    /* ✅ 路線更大 */
+    #busList {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .row {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 1.2fr 2fr 2fr 1fr 1fr;
+        place-items: center;
+        padding: 0 4vw;
+    }
+
     .route { font-size: 6vh; }
-
-    .dest { font-size: 4.5vh; }
-
-    .minutes { font-size: 5vh; }
+    .stop-name { font-size: 3.5vh; }
+    .dest { font-size: 4vh; }
+    .minutes { font-size: 4.5vh; }
 }
 </style>
 </head>
@@ -153,13 +144,7 @@ body {
 <body>
 
 <div class="header">
-    <div class="left">
-        <div class="stop">早晨 社畜!</div>
-        <div class="weather">
-            <img id="weatherIcon">
-            <span id="weatherText">--°C</span>
-        </div>
-    </div>
+    <div class="stop-title">葵涌業成街</div>
     <div class="time" id="clock"></div>
 </div>
 
@@ -167,17 +152,19 @@ body {
 
     <div class="row header-row">
         <div>路線</div>
+        <div>站名</div>
         <div>終點</div>
         <div>下一班</div>
         <div>再下一班</div>
     </div>
 
-    <div id="busList" style="flex:1; display:flex; flex-direction:column;"></div>
+    <div id="busList"></div>
 
 </div>
 
 <script>
 const STOP_ID = "C3672D8D28801773";
+const STOP_NAME = "葵涌業成街";
 const SERVICE_TYPE = "1";
 
 const ROUTES = [
@@ -207,7 +194,6 @@ function render() {
     ROUTES.forEach(r => {
         const row = document.createElement("div");
         row.className = "row";
-        row.style.flex = "1";
 
         const etas = etaData[r.route] || [];
         const m1 = etas[0] ? getMinutes(etas[0]) : "--";
@@ -215,10 +201,12 @@ function render() {
 
         row.innerHTML = `
             <div class="route">${r.route}</div>
+            <div class="stop-name">${STOP_NAME}</div>
             <div class="dest">${r.dest}</div>
             <div class="minutes ${m1<=3?'red':''}">${m1}m</div>
             <div class="minutes ${m2<=3?'red':''}">${m2}m</div>
         `;
+
         list.appendChild(row);
     });
 }
@@ -241,33 +229,11 @@ async function fetchETA() {
     render();
 }
 
-async function fetchWeather() {
-    try {
-        const res = await fetch(
-          "https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc"
-        );
-        const data = await res.json();
-
-        const temp = data.temperature.data[1].value;
-        const humidity = data.humidity.data[0].value;
-        const iconCode = data.icon[0];
-
-        document.getElementById("weatherText").innerText =
-          `${temp}°C | ${humidity}%`;
-
-        document.getElementById("weatherIcon").src =
-          `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${iconCode}.png`;
-
-    } catch {}
-}
-
 updateClock();
 fetchETA();
-fetchWeather();
 
 setInterval(updateClock,1000);
 setInterval(fetchETA,15000);
-setInterval(fetchWeather,600000);
 </script>
 
 </body>
