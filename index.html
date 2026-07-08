@@ -22,108 +22,103 @@ color:white;
 display:flex;
 justify-content:space-between;
 align-items:center;
-padding:2vh 4vw;
-font-weight:600;
-}
-
-.top-left{
-font-size:4vh;
-letter-spacing:1px;
-}
-
-.top-right{
-text-align:right;
-}
-
-.clock{
-font-size:5vh;
+padding:3vh 5vw;
 font-weight:700;
 }
 
-.greeting{
-font-size:2vh;
-opacity:0.9;
+.top-left{
+font-size:5vh;
+letter-spacing:2px;
+}
+
+.clock{
+font-size:6vh;
 }
 
 /* ===== Main Panel ===== */
 .panel{
 background:#f4f7f8;
-height:75vh;
+min-height:75vh;
 padding-top:1vh;
 }
 
 .header-row{
 display:grid;
-grid-template-columns:1.2fr 2fr 2fr 1fr;
-padding:1vh 4vw;
+grid-template-columns:1.4fr 2fr 2fr 2fr;
+padding:2vh 5vw;
 color:#7b8a8b;
-font-size:2vh;
+font-size:2.2vh;
 }
 
 .row{
 display:grid;
-grid-template-columns:1.2fr 2fr 2fr 1fr;
+grid-template-columns:1.4fr 2fr 2fr 2fr;
 align-items:center;
-padding:2vh 4vw;
+padding:3vh 5vw;
 border-top:1px solid #e0e6e8;
 }
 
+/* Route Box */
 .route-box{
 color:white;
-font-size:5vh;
-font-weight:700;
+font-size:7vh;
+font-weight:800;
 display:flex;
 justify-content:center;
 align-items:center;
-border-radius:8px;
-height:8vh;
+border-radius:12px;
+height:10vh;
+min-width:14vh;
 }
 
 .route-green{background:#5cc27c;}
 .route-yellow{background:#f4b942;}
 .route-red{background:#e74c3c;}
 
+/* NEXT column */
 .next{
-font-size:2.5vh;
-color:#555;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:1vh;
 }
 
-.arriving{
-font-size:6vh;
+.next-top{
+font-size:4vh;
 font-weight:700;
-color:#5cc27c;
 }
 
-.status{
-font-size:2vh;
-color:#5cc27c;
+.next-bottom{
+font-size:2.5vh;
+color:#666;
+}
+
+/* ARRIVING → 站名 */
+.station-name{
+font-size:3vh;
 font-weight:600;
+color:#333;
+text-align:center;
 }
 
-.soon{
-color:#e74c3c;
+/* STATUS → 總站 */
+.terminal{
+font-size:3vh;
+font-weight:600;
+color:#5cc27c;
+text-align:center;
 }
 
-/* ===== Bottom Bar ===== */
+/* Bottom Bar */
 .bottombar{
 background:#111;
 color:#5cc27c;
 display:flex;
 justify-content:space-between;
 align-items:center;
-padding:1vh 4vw;
-font-size:2vh;
-}
-
-.weather{
-font-size:3vh;
-}
-
-.page{
-background:#5cc27c;
-color:white;
-padding:0.5vh 1vw;
-border-radius:4px;
+padding:2vh 5vw;
+font-size:2.5vh;
 }
 </style>
 </head>
@@ -131,11 +126,8 @@ border-radius:4px;
 <body>
 
 <div class="topbar">
-<div class="top-left">TO CENTRAL</div>
-<div class="top-right">
+<div class="top-left">早晨 社畜！</div>
 <div class="clock" id="clock"></div>
-<div class="greeting">GOOD EVENING</div>
-</div>
 </div>
 
 <div class="panel">
@@ -143,8 +135,8 @@ border-radius:4px;
 <div class="header-row">
 <div>ROUTE</div>
 <div>NEXT</div>
-<div>ARRIVING</div>
-<div>STATUS</div>
+<div>站名</div>
+<div>總站</div>
 </div>
 
 <div id="busList"></div>
@@ -152,10 +144,9 @@ border-radius:4px;
 </div>
 
 <div class="bottombar">
-<div class="weather">31°C ☁</div>
+<div>31°C ☁</div>
 <div id="date"></div>
 <div>LAST <span id="lastUpdate"></span></div>
-<div class="page">1/1</div>
 </div>
 
 <script>
@@ -168,17 +159,29 @@ const ROUTES=[
 ];
 
 let etaData={};
+let stopNames={};
 
 function updateClock(){
 const now=new Date();
 document.getElementById("clock").innerText=
-now.toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'});
+now.toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit',hour12:false});
 document.getElementById("date").innerText=
-now.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'});
+now.toLocaleDateString('zh-HK',{weekday:'short',day:'2-digit',month:'short'});
 }
 
 function getMinutes(t){
 return Math.max(0,Math.floor((new Date(t)-new Date())/60000));
+}
+
+async function fetchStopName(stopId){
+if(stopNames[stopId]) return;
+try{
+const res=await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop/${stopId}`);
+const data=await res.json();
+stopNames[stopId]=data.data.name_tc;
+}catch{
+stopNames[stopId]="--";
+}
 }
 
 function render(){
@@ -195,9 +198,12 @@ const m2=etas[1]?getMinutes(etas[1]):"--";
 
 row.innerHTML=`
 <div class="route-box ${r.color}">${r.route}</div>
-<div class="next">${m1} min<br>${m2} min</div>
-<div class="arriving ${m1<=3?'soon':''}">${m1} min</div>
-<div class="status">${m1<=3?'LEAVING':'ON TIME'}</div>
+<div class="next">
+<div class="next-top">${m1} min</div>
+<div class="next-bottom">${m2} min</div>
+</div>
+<div class="station-name">${stopNames[r.stopId]||"--"}</div>
+<div class="terminal">${r.dest}</div>
 `;
 
 list.appendChild(row);
@@ -206,6 +212,7 @@ list.appendChild(row);
 
 async function fetchETA(){
 for(const r of ROUTES){
+await fetchStopName(r.stopId);
 try{
 const res=await fetch(
 `https://data.etabus.gov.hk/v1/transport/kmb/eta/${r.stopId}/${r.route}/${SERVICE_TYPE}`
@@ -218,7 +225,7 @@ etaData[r.route]=[];
 }
 }
 document.getElementById("lastUpdate").innerText=
-new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'});
+new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit',hour12:false});
 render();
 }
 
