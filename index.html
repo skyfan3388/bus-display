@@ -25,19 +25,19 @@ html, body {
     padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* ✅ 整頁用 Flex 控制 */
+/* 整頁結構 */
 body {
     display: flex;
     flex-direction: column;
 }
 
-/* HEADER */
+/* Header */
 .header {
-    padding: 2vh 4vw;
+    background: #16263d;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #16263d;
+    padding: 2vh 4vw;
 }
 
 .left {
@@ -68,19 +68,20 @@ body {
     font-weight: 700;
 }
 
-/* BUS LIST */
+/* 主內容 */
 .container {
     flex: 1;
     display: flex;
     flex-direction: column;
 }
 
+/* 每一行 */
 .row {
     display: grid;
-    grid-template-columns: 1.5fr 2fr 1fr 1fr;
+    grid-template-columns: 1.5fr 2.2fr 1fr 1fr;
+    align-items: center;
     padding: 3vh 4vw;
     border-top: 1px solid rgba(255,255,255,0.06);
-    align-items: center;
 }
 
 .header-row {
@@ -105,8 +106,12 @@ body {
 
 .red { color: #ff4c4c; }
 
-/* ✅ 橫向真正展示板模式 */
+/* ✅ 橫向真正撐滿版本 */
 @media (orientation: landscape) {
+
+    body {
+        height: 100vh;
+    }
 
     .header {
         padding: 1.5vh 4vw;
@@ -117,18 +122,30 @@ body {
     .weather img { height: 2.5vh; }
     .time { font-size: 6vh; }
 
+    .container {
+        flex: 1;
+        height: 100%;
+    }
+
+    /* ✅ 每一行平均高度 */
     .row {
-        grid-template-columns: 1fr 3fr 1fr 1fr;
-        padding: 2.5vh 6vw;
+        flex: 1;
+        display: grid;
+        grid-template-columns: 1.8fr 2.2fr 1fr 1fr;
+        align-items: center;
+        padding: 0 6vw;
     }
 
     .header-row {
-        font-size: 2vh;
+        font-size: 4vh;
     }
 
-    .route { font-size: 7vh; }
-    .dest { font-size: 4vh; }
-    .minutes { font-size: 4vh; }
+    /* ✅ 路線更大 */
+    .route { font-size: 6vh; }
+
+    .dest { font-size: 4.5vh; }
+
+    .minutes { font-size: 5vh; }
 }
 </style>
 </head>
@@ -137,7 +154,7 @@ body {
 
 <div class="header">
     <div class="left">
-        <div class="stop">業成街</div>
+        <div class="stop">早晨 社畜!</div>
         <div class="weather">
             <img id="weatherIcon">
             <span id="weatherText">--°C</span>
@@ -155,7 +172,7 @@ body {
         <div>再下一班</div>
     </div>
 
-    <div id="busList"></div>
+    <div id="busList" style="flex:1; display:flex; flex-direction:column;"></div>
 
 </div>
 
@@ -190,6 +207,7 @@ function render() {
     ROUTES.forEach(r => {
         const row = document.createElement("div");
         row.className = "row";
+        row.style.flex = "1";
 
         const etas = etaData[r.route] || [];
         const m1 = etas[0] ? getMinutes(etas[0]) : "--";
