@@ -1,10 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-HK">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <title>社畜通勤儀表板</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ff6b6b">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 
 <style>
 html,body{
@@ -16,277 +20,212 @@ background:#1c1f24;
 color:#fff;
 }
 
-/* ===== Top Bar ===== */
 .topbar{
 background:#ff6b6b;
 display:flex;
 justify-content:space-between;
 align-items:center;
-padding:3vh 5vw;
+padding:16px;
 font-weight:800;
 }
 
-.top-left{
-font-size:4.5vh;
-}
+.clock{font-size:28px;}
 
-.clock{
-font-size:6vh;
-}
-
-/* ===== Main Panel ===== */
 .panel{
 background:#f1f3f6;
 color:#222;
-min-height:75vh;
+min-height:70vh;
 }
 
-.header-row,
 .row{
 display:grid;
-grid-template-columns: 1.5fr 2fr 2fr 2fr;
-padding:3vh 5vw;
-align-items:center;
+grid-template-columns: 1fr 1fr 1fr 1fr;
+padding:16px;
 text-align:center;
-}
-
-.header-row{
-font-size:2.2vh;
-color:#777;
 border-bottom:1px solid #ddd;
+align-items:center;
 }
 
-.row{
-border-top:1px solid #ddd;
-}
-
-/* ✅ 全新社畜風巴士號碼牌 */
 .route-box{
-background:linear-gradient(145deg,#3a3f45,#2a2f34);
-color:#ffffff;
-font-size:8vh;
+background:#2a2f34;
+color:#fff;
+font-size:28px;
 font-weight:900;
-display:flex;
-justify-content:center;
-align-items:center;
-border-radius:18px;
-height:12vh;
-box-shadow:
-0 4px 12px rgba(0,0,0,0.25),
-inset 0 0 15px rgba(255,107,107,0.15);
-transition:0.3s;
+border-radius:12px;
+padding:10px;
 }
 
-/* 快到站 → 整塊紅 */
-.route-box.urgent-box{
-background:linear-gradient(145deg,#ff6b6b,#e53935);
-box-shadow:0 0 20px rgba(255,0,0,0.6);
-}
-
-/* NEXT */
-.next{
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
-gap:1vh;
-}
-
-.next-top{
-font-size:4.5vh;
-font-weight:800;
-}
-
-.next-bottom{
-font-size:2.5vh;
-color:#666;
-}
-
-/* 跑馬燈 */
-.station-wrapper{
-overflow:hidden;
-width:100%;
-}
-
-.marquee{
-display:inline-block;
-white-space:nowrap;
-padding-left:100%;
-animation:scroll 10s linear infinite;
-font-size:3vh;
-font-weight:600;
-}
-
-@keyframes scroll{
-0%{ transform:translateX(0); }
-100%{ transform:translateX(-100%); }
-}
-
-/* Terminal */
-.terminal{
-font-size:3vh;
-font-weight:700;
-color:#ff6b6b;
-}
-
-/* 緊急 */
-.urgent{
-color:#e53935;
+.urgent-box{
+background:#e53935;
 animation:blink 1s infinite;
 }
 
 @keyframes blink{
-0%{opacity:1;}
-50%{opacity:0.4;}
-100%{opacity:1;}
+0%{opacity:1}
+50%{opacity:0.4}
+100%{opacity:1}
 }
 
-/* Bottom */
 .bottombar{
 background:#111;
 color:#ff6b6b;
+padding:10px;
 display:flex;
 justify-content:space-between;
-align-items:center;
-padding:2vh 5vw;
-font-size:2.5vh;
+font-size:14px;
+}
+
+button{
+padding:6px 10px;
+border:none;
+border-radius:6px;
+background:#ff6b6b;
+color:#fff;
+font-weight:600;
+}
+
+input{
+padding:6px;
+border-radius:6px;
+border:1px solid #ccc;
+}
+
+.add-panel{
+padding:12px;
+background:#222;
+display:flex;
+gap:6px;
+flex-wrap:wrap;
 }
 </style>
 </head>
-
 <body>
 
 <div class="topbar">
-<div class="top-left">今日又要返工 😮‍💨</div>
+<div>今日又要返工 😮‍💨</div>
 <div class="clock" id="clock"></div>
 </div>
 
-<div class="panel">
-
-<div class="header-row">
-<div>路線</div>
-<div>距離崩潰</div>
-<div>你被困喺</div>
-<div>老細等緊你</div>
+<div class="add-panel">
+<input id="routeInput" placeholder="路線">
+<input id="destInput" placeholder="目的地">
+<input id="stopInput" placeholder="站ID">
+<button onclick="addRoute()">加入</button>
 </div>
 
-<div id="busList"></div>
-
+<div class="panel">
+<div id="busList">載入中...</div>
 </div>
 
 <div class="bottombar">
-<div>精神狀態：低落 ☕</div>
 <div id="date"></div>
-<div>最後更新時間 <span id="lastUpdate"></span></div>
+<div>最後更新 <span id="lastUpdate"></span></div>
 </div>
 
 <script>
 const SERVICE_TYPE="1";
-
-const ROUTES=[
-{route:"38",dest:"平田",stopId:"C3672D8D28801773"},
-{route:"42C",dest:"藍田",stopId:"C3672D8D28801773"},
-{route:"40P",dest:"觀塘",stopId:"A7516C49B99EFD78"}
+let ROUTES=JSON.parse(localStorage.getItem("routes"))||[
+{route:"38",dest:"平田",stopId:"C3672D8D28801773"}
 ];
 
 let etaData={};
 let stopNames={};
+let notified={};
+
+function saveRoutes(){
+localStorage.setItem("routes",JSON.stringify(ROUTES));
+}
+
+function addRoute(){
+const r=document.getElementById("routeInput").value;
+const d=document.getElementById("destInput").value;
+const s=document.getElementById("stopInput").value;
+if(!r||!d||!s)return;
+ROUTES.push({route:r,dest:d,stopId:s});
+saveRoutes();
+fetchETA();
+}
 
 function updateClock(){
 const now=new Date();
-document.getElementById("clock").innerText=
-now.toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit',hour12:false});
-document.getElementById("date").innerText=
-now.toLocaleDateString('zh-HK',{weekday:'short',day:'2-digit',month:'short'});
+clock.innerText=now.toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit',hour12:false});
+date.innerText=now.toLocaleDateString('zh-HK');
 }
 
 function getMinutes(t){
-return Math.max(0,Math.floor((new Date(t)-new Date())/60000));
+const diff=(new Date(t)-new Date())/60000;
+if(diff<-1)return null;
+return Math.max(0,Math.floor(diff));
 }
 
-async function fetchStopName(stopId){
-if(stopNames[stopId]) return;
+async function fetchStopName(id){
+if(stopNames[id])return;
 try{
-const res=await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop/${stopId}`);
+const res=await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop/${id}`);
 const data=await res.json();
-stopNames[stopId]=data.data.name_tc;
+stopNames[id]=data.data.name_tc;
 }catch{
-stopNames[stopId]="--";
+stopNames[id]="--";
 }
-}
-
-function cleanStationName(name){
-return name.replace(/\s*\(.*?\)/g,"");
-}
-
-function render(){
-const list=document.getElementById("busList");
-list.innerHTML="";
-
-ROUTES.forEach(r=>{
-const row=document.createElement("div");
-row.className="row";
-
-const etas=etaData[r.route]||[];
-const m1=etas[0]?getMinutes(etas[0]):"--";
-const m2=etas[1]?getMinutes(etas[1]):"--";
-
-let statusText=r.dest;
-let extraClass="";
-let boxClass="route-box";
-
-if(m1===0){
-statusText="快啲衝啊！！";
-extraClass="urgent";
-boxClass+=" urgent-box";
-}else if(m1<=3){
-statusText="仲唔跑？😡";
-extraClass="urgent";
-}
-
-const station = cleanStationName(stopNames[r.stopId]||"--");
-
-row.innerHTML=`
-<div class="${boxClass}">${r.route}</div>
-
-<div class="next">
-<div class="next-top ${extraClass}">${m1} 分鐘</div>
-<div class="next-bottom">${m2} 分鐘</div>
-</div>
-
-<div class="station-wrapper">
-<div class="marquee">${station}</div>
-</div>
-
-<div class="terminal ${extraClass}">${statusText}</div>
-`;
-
-list.appendChild(row);
-});
 }
 
 async function fetchETA(){
-for(const r of ROUTES){
-await fetchStopName(r.stopId);
+await Promise.all([...new Set(ROUTES.map(r=>r.stopId))].map(fetchStopName));
+
+const tasks=ROUTES.map(async r=>{
 try{
-const res=await fetch(
-`https://data.etabus.gov.hk/v1/transport/kmb/eta/${r.stopId}/${r.route}/${SERVICE_TYPE}`
-);
+const res=await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/eta/${r.stopId}/${r.route}/${SERVICE_TYPE}`);
 const data=await res.json();
 const filtered=data.data.filter(x=>x.dest_tc.includes(r.dest));
-etaData[r.route]=filtered.slice(0,2).map(x=>x.eta);
+return {route:r.route,eta:filtered.slice(0,2).map(x=>x.eta)};
 }catch{
-etaData[r.route]=[];
+return {route:r.route,eta:[]};
 }
-}
-document.getElementById("lastUpdate").innerText=
-new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit',hour12:false});
+});
+
+const results=await Promise.all(tasks);
+results.forEach(r=>etaData[r.route]=r.eta);
+
+lastUpdate.innerText=new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'});
 render();
+}
+
+function render(){
+busList.innerHTML="";
+
+ROUTES.forEach(r=>{
+const etas=etaData[r.route]||[];
+const m1=etas[0]?getMinutes(etas[0]):null;
+const m2=etas[1]?getMinutes(etas[1]):null;
+
+let urgent=m1===0||m1===1;
+if(urgent&&!notified[r.route]){
+if(navigator.vibrate)navigator.vibrate([200,100,200]);
+notified[r.route]=true;
+}
+
+const row=document.createElement("div");
+row.className="row";
+
+row.innerHTML=`
+<div class="route-box ${urgent?'urgent-box':''}">${r.route}</div>
+<div>${m1===null?'--':m1+" 分"}</div>
+<div>${m2===null?'--':m2+" 分"}</div>
+<div>${stopNames[r.stopId]||'--'}</div>
+`;
+
+busList.appendChild(row);
+});
+}
+
+if("serviceWorker" in navigator){
+navigator.serviceWorker.register("service-worker.js");
 }
 
 updateClock();
 fetchETA();
 setInterval(updateClock,1000);
+setInterval(render,1000);
 setInterval(fetchETA,15000);
 </script>
 
