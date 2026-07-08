@@ -2,75 +2,153 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Bus Display Pro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Transit Display Solid</title>
 
 <style>
-body {
+html, body {
     margin: 0;
-    background: black;
-    color: white;
-    font-family: Arial, sans-serif;
+    padding: 0;
+    height: 100%;
+    background: #0f1b2d; /* ✅ 深藍實色 */
+    color: #e6eefc;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    overflow: hidden;
 }
 
+/* 背景動畫層 */
+.weather-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* 雨動畫 */
+.rain {
+    background-image: repeating-linear-gradient(
+        to bottom,
+        rgba(200,220,255,0.12) 0px,
+        rgba(200,220,255,0.12) 2px,
+        transparent 2px,
+        transparent 20px
+    );
+    animation: rainFall 0.6s linear infinite;
+}
+
+@keyframes rainFall {
+    from { background-position: 0 0; }
+    to { background-position: 0 20px; }
+}
+
+/* 雷電 */
+.lightning {
+    animation: flash 3s infinite;
+}
+
+@keyframes flash {
+    0%, 95%, 100% { background-color: transparent; }
+    96% { background-color: rgba(255,255,255,0.25); }
+}
+
+/* Header */
 .header {
-    background: #2f7d4e;
-    padding: 20px 40px;
+    height: 15vh;
+    padding: 2vh 4vw;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 40px;
-    font-weight: bold;
+    font-size: 4vh;
+    font-weight: 600;
+    position: relative;
+    z-index: 2;
+
+    background: #16263d; /* ✅ 實色 */
+    border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
 .left-header {
     display: flex;
-    gap: 40px;
+    gap: 3vw;
     align-items: center;
 }
 
 .time {
-    font-size: 60px;
+    font-size: 6vh;
+    font-weight: 700;
+    color: #ffffff;
 }
 
 .weather {
-    font-size: 30px;
-    color: #ddd;
+    font-size: 3vh;
+    display: flex;
+    align-items: center;
+    gap: 1vw;
+    color: #cfe2ff;
 }
 
+.weather img {
+    height: 4vh;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%,100% { transform: translateY(0px); }
+    50% { transform: translateY(-3px); }
+}
+
+/* Table */
 .table {
     width: 100%;
+    height: 85vh;
     border-collapse: collapse;
-}
-
-th, td {
-    padding: 30px;
-    border-bottom: 1px solid #333;
+    position: relative;
+    z-index: 2;
 }
 
 th {
-    color: #aaa;
-    font-size: 24px;
+    font-size: 2.5vh;
+    padding: 2vh;
+    color: #7f9cc6;
+    letter-spacing: 1px;
+}
+
+td {
+    font-size: 5vh;
+    padding: 2vh;
+    border-top: 1px solid rgba(255,255,255,0.06);
 }
 
 .route {
-    font-size: 60px;
-    font-weight: bold;
-    color: #4CAF50;
+    font-size: 8vh;
+    font-weight: 700;
+    color: #39ffb6; /* ✅ 實色電綠 */
 }
 
 .minutes {
-    font-size: 70px;
-    font-weight: bold;
+    font-size: 9vh;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+/* ✅ 3分鐘內：純紅色，無發光 */
+.minutes.red {
+    color: #ff4c4c;
 }
 </style>
 </head>
 
 <body>
 
+<div class="weather-bg" id="weatherBg"></div>
+
 <div class="header">
     <div class="left-header">
-        <div>Hi</div>
-        <div class="weather" id="weather">--°C</div>
+        <div>業成街</div>
+        <div class="weather">
+            <img id="weatherIcon" src="" alt="weather">
+            <span id="weatherText">--°C</span>
+        </div>
     </div>
     <div class="time" id="clock"></div>
 </div>
@@ -82,19 +160,17 @@ th {
 <th>下一班</th>
 <th>再下一班</th>
 </tr>
-<tbody id="busTable">
-</tbody>
+<tbody id="busTable"></tbody>
 </table>
 
 <script>
 const STOP_ID = "C3672D8D28801773";
 const SERVICE_TYPE = "1";
 
-// ✅ 在這裡設定多路線
 const ROUTES = [
     { route: "38", dest: "平田" },
     { route: "42C", dest: "藍田站" },
-	{ route: "40P", dest: "觀塘碼頭" }
+    { route: "40P", dest: "觀塘碼頭" }
 ];
 
 let etaData = {};
@@ -102,7 +178,7 @@ let etaData = {};
 function updateClock() {
     const now = new Date();
     document.getElementById("clock").innerText =
-        now.toLocaleTimeString('zh-HK', {hour: '2-digit', minute:'2-digit'});
+        now.toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'});
 }
 
 function getSecondsLeft(etaTime) {
@@ -113,23 +189,15 @@ function getSecondsLeft(etaTime) {
 
 function updateCountdown() {
     ROUTES.forEach(r => {
-        const key = r.route;
-        if (!etaData[key]) return;
+        const row = document.getElementById("row-" + r.route);
+        if (!row || !etaData[r.route]) return;
 
-        const row = document.getElementById("row-" + key);
-        const etaCells = row.querySelectorAll(".eta");
+        const cells = row.querySelectorAll(".eta");
 
-        etaData[key].forEach((etaTime, index) => {
-            const sec = getSecondsLeft(etaTime);
-            const min = Math.floor(sec / 60);
-
-            etaCells[index].innerText = min + "m";
-
-            if (min <= 3) {
-                etaCells[index].style.color = "red";
-            } else {
-                etaCells[index].style.color = "white";
-            }
+        etaData[r.route].forEach((etaTime, i) => {
+            const min = Math.floor(getSecondsLeft(etaTime) / 60);
+            cells[i].innerText = min + "m";
+            cells[i].classList.toggle("red", min <= 3);
         });
     });
 }
@@ -137,18 +205,15 @@ function updateCountdown() {
 async function fetchETA() {
     for (const r of ROUTES) {
         try {
-            const response = await fetch(
-                `https://data.etabus.gov.hk/v1/transport/kmb/eta/${STOP_ID}/${r.route}/${SERVICE_TYPE}`
+            const res = await fetch(
+              `https://data.etabus.gov.hk/v1/transport/kmb/eta/${STOP_ID}/${r.route}/${SERVICE_TYPE}`
             );
-            const result = await response.json();
-
-            const filtered = result.data.filter(item =>
-                item.dest_tc === r.dest
+            const data = await res.json();
+            const filtered = data.data.filter(item =>
+                item.dest_tc.includes(r.dest)
             );
-
-            etaData[r.route] = filtered.slice(0,2).map(item => item.eta);
-
-        } catch (error) {
+            etaData[r.route] = filtered.slice(0,2).map(x=>x.eta);
+        } catch {
             etaData[r.route] = [];
         }
     }
@@ -156,36 +221,48 @@ async function fetchETA() {
 
 async function fetchWeather() {
     try {
-        const response = await fetch(
-            "https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc"
+        const res = await fetch(
+          "https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc"
         );
-        const data = await response.json();
+        const data = await res.json();
 
-        const temp = data.temperature.data[1].value; // 香港區
+        const temp = data.temperature.data[1].value;
         const humidity = data.humidity.data[0].value;
+        const iconCode = data.icon[0];
 
-        document.getElementById("weather").innerText =
-            `${temp}°C  |  ${humidity}%`;
-    } catch (error) {
-        document.getElementById("weather").innerText = "--";
-    }
+        document.getElementById("weatherText").innerText =
+          `${temp}°C | ${humidity}%`;
+
+        document.getElementById("weatherIcon").src =
+          `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${iconCode}.png`;
+
+        const bg = document.getElementById("weatherBg");
+        bg.className = "weather-bg";
+
+        if ([60,61,62,63,64,65,80,81,82,83,84,85,90,91].includes(iconCode)) {
+            bg.classList.add("rain");
+        }
+
+        if ([92,93].includes(iconCode)) {
+            bg.classList.add("rain");
+            bg.classList.add("lightning");
+        }
+
+    } catch {}
 }
 
 function buildTable() {
     const table = document.getElementById("busTable");
     table.innerHTML = "";
-
     ROUTES.forEach(r => {
         const row = document.createElement("tr");
         row.id = "row-" + r.route;
-
         row.innerHTML = `
             <td class="route">${r.route}</td>
             <td>${r.dest}</td>
             <td class="minutes eta">--</td>
             <td class="minutes eta">--</td>
         `;
-
         table.appendChild(row);
     });
 }
@@ -195,10 +272,10 @@ updateClock();
 fetchETA();
 fetchWeather();
 
-setInterval(updateClock, 1000);
-setInterval(updateCountdown, 1000);
-setInterval(fetchETA, 15000);
-setInterval(fetchWeather, 600000); // 10分鐘更新天氣
+setInterval(updateClock,1000);
+setInterval(updateCountdown,1000);
+setInterval(fetchETA,15000);
+setInterval(fetchWeather,600000);
 </script>
 
 </body>
