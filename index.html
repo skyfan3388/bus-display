@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 
-<!-- ✅ PWA 全屏設定 -->
+<!-- ✅ iOS PWA 全屏 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bus Display">
@@ -15,154 +15,115 @@
 html, body {
     margin: 0;
     padding: 0;
-    height: 100%;
+    min-height: 100vh;
     background: #0f1b2d;
     color: #e6eefc;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-    overflow: hidden;
+    overflow-x: hidden;
 
-    /* ✅ Safe Area */
+    /* ✅ Safe area 適配 */
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* ✅ 強制橫向 */
-@media screen and (orientation: portrait) {
-    body {
-        transform: rotate(90deg);
-        transform-origin: left top;
-        width: 100vh;
-        height: 100vw;
-        position: absolute;
-        top: 100%;
-        left: 0;
-    }
-}
-
-/* 背景動畫層 */
-.weather-bg {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-}
-
-/* 雨動畫 */
-.rain {
-    background-image: repeating-linear-gradient(
-        to bottom,
-        rgba(200,220,255,0.12) 0px,
-        rgba(200,220,255,0.12) 2px,
-        transparent 2px,
-        transparent 20px
-    );
-    animation: rainFall 0.6s linear infinite;
-}
-
-@keyframes rainFall {
-    from { background-position: 0 0; }
-    to { background-position: 0 20px; }
-}
-
-/* 雷電 */
-.lightning {
-    animation: flash 3s infinite;
-}
-
-@keyframes flash {
-    0%,95%,100% { background-color: transparent; }
-    96% { background-color: rgba(255,255,255,0.25); }
-}
-
 /* Header */
 .header {
-    height: 15vh;
-    padding: 2vh 4vw;
+    padding: 3vh 5vw;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 4vh;
-    font-weight: 600;
-    position: relative;
-    z-index: 2;
     background: #16263d;
     border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
 .left-header {
     display: flex;
-    gap: 3vw;
+    flex-direction: column;
+    gap: 1vh;
+}
+
+.stop-name {
+    font-size: 5vw;
+    font-weight: 600;
+}
+
+.weather {
+    font-size: 3.5vw;
+    color: #cfe2ff;
+    display: flex;
     align-items: center;
+    gap: 2vw;
+}
+
+.weather img {
+    height: 4vw;
 }
 
 .time {
-    font-size: 6vh;
+    font-size: 8vw;
     font-weight: 700;
     color: #ffffff;
 }
 
-.weather {
-    font-size: 3vh;
-    display: flex;
-    align-items: center;
-    gap: 1vw;
-    color: #cfe2ff;
-}
-
-.weather img {
-    height: 4vh;
+/* 橫向時調整字體 */
+@media (orientation: landscape) {
+    .stop-name { font-size: 3vh; }
+    .weather { font-size: 2vh; }
+    .weather img { height: 3vh; }
+    .time { font-size: 6vh; }
 }
 
 /* Table */
 .table {
     width: 100%;
-    height: 85vh;
     border-collapse: collapse;
-    position: relative;
-    z-index: 2;
 }
 
 th {
-    font-size: 2.5vh;
-    padding: 2vh;
+    text-align: left;
+    padding: 3vh 5vw;
+    font-size: 3.5vw;
     color: #7f9cc6;
 }
 
 td {
-    font-size: 5vh;
-    padding: 2vh;
+    padding: 4vh 5vw;
     border-top: 1px solid rgba(255,255,255,0.06);
+    font-size: 6vw;
 }
 
 .route {
-    font-size: 8vh;
     font-weight: 700;
     color: #39ffb6;
+    font-size: 10vw;
 }
 
 .minutes {
-    font-size: 9vh;
     font-weight: 700;
-    color: #ffffff;
 }
 
 .minutes.red {
     color: #ff4c4c;
+}
+
+/* 橫向表格比例 */
+@media (orientation: landscape) {
+    th { font-size: 2vh; }
+    td { font-size: 4vh; }
+    .route { font-size: 7vh; }
 }
 </style>
 </head>
 
 <body>
 
-<div class="weather-bg" id="weatherBg"></div>
-
 <div class="header">
     <div class="left-header">
-        <div>業成街</div>
+        <div class="stop-name">業成街</div>
         <div class="weather">
-            <img id="weatherIcon" src="" alt="weather">
+            <img id="weatherIcon" src="">
             <span id="weatherText">--°C</span>
         </div>
     </div>
@@ -170,12 +131,14 @@ td {
 </div>
 
 <table class="table">
+<thead>
 <tr>
 <th>路線</th>
 <th>終點</th>
 <th>下一班</th>
 <th>再下一班</th>
 </tr>
+</thead>
 <tbody id="busTable"></tbody>
 </table>
 
@@ -251,18 +214,6 @@ async function fetchWeather() {
 
         document.getElementById("weatherIcon").src =
           `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${iconCode}.png`;
-
-        const bg = document.getElementById("weatherBg");
-        bg.className = "weather-bg";
-
-        if ([60,61,62,63,64,65,80,81,82,83,84,85,90,91].includes(iconCode)) {
-            bg.classList.add("rain");
-        }
-
-        if ([92,93].includes(iconCode)) {
-            bg.classList.add("rain");
-            bg.classList.add("lightning");
-        }
 
     } catch {}
 }
