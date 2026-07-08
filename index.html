@@ -2,7 +2,6 @@
 <html>
 <head>
 <meta charset="UTF-8">
-
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -24,7 +23,6 @@ body {
     flex-direction: column;
 }
 
-/* Header */
 .header {
     background: #16263d;
     display: flex;
@@ -33,7 +31,7 @@ body {
     padding: 2vh 4vw;
 }
 
-.stop-title {
+.title {
     font-size: 5vw;
     font-weight: 600;
 }
@@ -43,14 +41,12 @@ body {
     font-weight: 700;
 }
 
-/* Container */
 .container {
     flex: 1;
     display: flex;
     flex-direction: column;
 }
 
-/* Row */
 .row {
     display: grid;
     grid-template-columns: 1.2fr 2fr 2fr 1fr 1fr;
@@ -86,9 +82,6 @@ body {
 
 .red { color: #ff4c4c; }
 
-/* =========================
-   橫向專業版本
-========================= */
 @media (orientation: landscape) {
 
     body {
@@ -100,7 +93,7 @@ body {
         padding: 1vh 4vw;
     }
 
-    .stop-title { font-size: 3vh; }
+    .title { font-size: 3vh; }
     .time { font-size: 6vh; }
 
     .container {
@@ -128,15 +121,15 @@ body {
     .row {
         flex: 1;
         display: grid;
-        grid-template-columns: 1.5fr 2fr 2fr 1fr 1fr;
+        grid-template-columns: 1.2fr 2fr 2fr 1fr 1fr;
         place-items: center;
         padding: 0 4vw;
     }
 
     .route { font-size: 6vh; }
-    .stop-name { font-size: 3vh; }
-    .dest { font-size: 3vh; }
-    .minutes { font-size: 4vh; }
+    .stop-name { font-size: 3.5vh; }
+    .dest { font-size: 4vh; }
+    .minutes { font-size: 4.5vh; }
 }
 </style>
 </head>
@@ -144,7 +137,7 @@ body {
 <body>
 
 <div class="header">
-    <div class="stop-title">早晨 社畜!</div>
+    <div class="title">KMB 即時到站</div>
     <div class="time" id="clock"></div>
 </div>
 
@@ -168,28 +161,48 @@ const SERVICE_TYPE = "1";
 const ROUTES = [
     { route: "38", dest: "平田", stopId: "C3672D8D28801773" },
     { route: "42C", dest: "藍田", stopId: "C3672D8D28801773" },
-    { route: "40P", dest: "觀塘", stopId: "A7516C49B99EFD78" } // ✅ 不同站
+    { route: "40P", dest: "觀塘", stopId: "A7516C49B99EFD78" }
 ];
 
 let etaData = {};
+let stopNames = {};
 
+// 時鐘
 function updateClock() {
     const now = new Date();
     document.getElementById("clock").innerText =
         now.toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'});
 }
 
+// 計算分鐘
 function getMinutes(etaTime) {
     const now = new Date();
     const eta = new Date(etaTime);
     return Math.max(0, Math.floor((eta - now) / 60000));
 }
 
+// 取得站名
+async function fetchStopName(stopId) {
+    if (stopNames[stopId]) return;
+
+    try {
+        const res = await fetch(
+          `https://data.etabus.gov.hk/v1/transport/kmb/stop/${stopId}`
+        );
+        const data = await res.json();
+        stopNames[stopId] = data.data.name_tc;
+    } catch {
+        stopNames[stopId] = "--";
+    }
+}
+
+// 渲染畫面
 function render() {
     const list = document.getElementById("busList");
     list.innerHTML = "";
 
     ROUTES.forEach(r => {
+
         const row = document.createElement("div");
         row.className = "row";
 
@@ -199,7 +212,7 @@ function render() {
 
         row.innerHTML = `
             <div class="route">${r.route}</div>
-            <div class="stop-name">${STOP_NAME}</div>
+            <div class="stop-name">${stopNames[r.stopId] || "--"}</div>
             <div class="dest">${r.dest}</div>
             <div class="minutes ${m1<=3?'red':''}">${m1}m</div>
             <div class="minutes ${m2<=3?'red':''}">${m2}m</div>
@@ -209,8 +222,13 @@ function render() {
     });
 }
 
+// 抓 ETA
 async function fetchETA() {
+
     for (const r of ROUTES) {
+
+        await fetchStopName(r.stopId);
+
         try {
             const res = await fetch(
               `https://data.etabus.gov.hk/v1/transport/kmb/eta/${r.stopId}/${r.route}/${SERVICE_TYPE}`
