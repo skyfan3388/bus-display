@@ -5,10 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>通勤 Widget Pro</title>
 
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#ff6b6b">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-
 <style>
 html,body{
 margin:0;
@@ -40,11 +36,11 @@ input,select{
 padding:8px;
 border-radius:10px;
 border:none;
-outline:none;
+margin-right:6px;
 }
 
 button{
-padding:8px 14px;
+padding:8px 12px;
 border:none;
 border-radius:12px;
 background:#ff6b6b;
@@ -57,12 +53,16 @@ cursor:pointer;
 display:flex;
 justify-content:space-between;
 align-items:center;
-padding:14px;
-margin-bottom:10px;
-border-radius:16px;
+padding:16px;
+margin-bottom:12px;
+border-radius:18px;
 background:rgba(255,255,255,0.12);
-backdrop-filter:blur(8px);
-cursor:grab;
+backdrop-filter:blur(10px);
+}
+
+.route-left{
+display:flex;
+flex-direction:column;
 }
 
 .route-number{
@@ -70,12 +70,27 @@ font-size:26px;
 font-weight:900;
 }
 
-.time{
-font-size:18px;
+.route-stop{
+font-size:14px;
+opacity:0.8;
 }
 
-.dragging{
-opacity:0.5;
+.route-right{
+display:flex;
+align-items:center;
+gap:12px;
+}
+
+.time{
+font-size:18px;
+font-weight:700;
+}
+
+.delete-btn{
+background:#ff4d4f;
+padding:6px 10px;
+border-radius:10px;
+font-size:16px;
 }
 </style>
 </head>
@@ -87,25 +102,26 @@ opacity:0.5;
 </div>
 
 <div class="glass">
-<input id="routeInput" placeholder="輸入路線">
+<input id="routeInput" placeholder="輸入路線 (例如 38)">
 <select id="stopSelect"></select>
 <button onclick="addRoute()">加入</button>
+<button onclick="clearAll()">清空</button>
 </div>
 
 <div id="list" class="glass"></div>
 
 <script>
 const SERVICE_TYPE="1";
-let ROUTES=JSON.parse(localStorage.getItem("routes"))||[];
-let etaData={};
-let stopNames={};
+let ROUTES = JSON.parse(localStorage.getItem("routes")) || [];
+let etaData = {};
 
 function save(){
 localStorage.setItem("routes",JSON.stringify(ROUTES));
 }
 
 function updateClock(){
-clock.innerText=new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit',hour12:false});
+clock.innerText=new Date().toLocaleTimeString('zh-HK',{
+hour:'2-digit',minute:'2-digit',hour12:false});
 }
 setInterval(updateClock,1000);
 updateClock();
@@ -114,7 +130,7 @@ document.getElementById("routeInput").addEventListener("change",loadStops);
 
 async function loadStops(){
 const route=document.getElementById("routeInput").value.trim();
-if(!route)return;
+if(!route) return;
 
 const res=await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/route-stop/${route}/1`);
 const data=await res.json();
@@ -138,22 +154,39 @@ const route=document.getElementById("routeInput").value.trim();
 const stopId=document.getElementById("stopSelect").value;
 const stopName=document.getElementById("stopSelect").selectedOptions[0]?.text;
 
-if(!route||!stopId)return;
+if(!route||!stopId) return;
 
 ROUTES.push({route,stopId,stopName});
 save();
 fetchETA();
 }
 
+function deleteRoute(index){
+ROUTES.splice(index,1);
+save();
+render();
+}
+
+function clearAll(){
+ROUTES=[];
+save();
+render();
+}
+
 async function fetchETA(){
 for(const r of ROUTES){
-const res=await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/eta/${r.stopId}/${r.route}/${SERVICE_TYPE}`);
+try{
+const res=await fetch(
+`https://data.etabus.gov.hk/v1/transport/kmb/eta/${r.stopId}/${r.route}/${SERVICE_TYPE}`
+);
 const data=await res.json();
 etaData[r.route]=data.data.slice(0,2).map(x=>x.eta);
+}catch{
+etaData[r.route]=[];
+}
 }
 render();
 }
-setInterval(fetchETA,15000);
 
 function getMin(t){
 const diff=(new Date(t)-new Date())/60000;
@@ -167,47 +200,30 @@ list.innerHTML="";
 ROUTES.forEach((r,index)=>{
 const card=document.createElement("div");
 card.className="route-card";
-card.draggable=true;
-
-card.addEventListener("dragstart",()=>card.classList.add("dragging"));
-card.addEventListener("dragend",()=>{
-card.classList.remove("dragging");
-save();
-});
 
 card.innerHTML=`
-<div>
+<div class="route-left">
 <div class="route-number">${r.route}</div>
-<div>${r.stopName||""}</div>
+<div class="route-stop">${r.stopName||""}</div>
 </div>
-<div class="time">
-${etaData[r.route]?
-getMin(etaData[r.route][0])+" 分": "--"}
-</div>
-<button onclick="deleteRoute(${index})">🗑</button>
-`;
 
-card.addEventListener("dragover",e=>{
-e.preventDefault();
-const dragging=document.querySelector(".dragging");
-if(dragging!==card){
-list.insertBefore(dragging,card);
-const newOrder=[...list.children].map(el=>ROUTES[[...list.children].indexOf(el)]);
-ROUTES=newOrder;
-}
-});
+<div class="route-right">
+<div class="time">
+${etaData[r.route] ?
+getMin(etaData[r.route][0])+" 分" : "--"}
+</div>
+<button class="delete-btn" onclick="deleteRoute(${index})">
+🗑
+</button>
+</div>
+`;
 
 list.appendChild(card);
 });
 }
 
-function deleteRoute(i){
-ROUTES.splice(i,1);
-save();
 fetchETA();
-}
-
-fetchETA();
+setInterval(fetchETA,15000);
 </script>
 
 </body>
