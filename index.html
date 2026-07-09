@@ -1,231 +1,293 @@
 <!DOCTYPE html>
-<html lang="zh-HK">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>通勤 Widget Pro</title>
 
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#111827">
+<title>社畜通勤儀表板</title>
 
 <style>
-body{
+html,body{
 margin:0;
+padding:0;
+height:100%;
 font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial;
-background:linear-gradient(135deg,#1f2937,#111827);
+background:#1c1f24;
 color:#fff;
 }
 
+/* ===== Top Bar ===== */
 .topbar{
-padding:16px;
-font-weight:800;
-font-size:20px;
-display:flex;
-justify-content:space-between;
-}
-
-.glass{
-background:rgba(255,255,255,0.08);
-backdrop-filter:blur(12px);
-border-radius:20px;
-padding:16px;
-margin:16px;
-}
-
-input,select{
-padding:8px;
-border-radius:10px;
-border:none;
-margin-right:6px;
-}
-
-button{
-padding:8px 12px;
-border:none;
-border-radius:12px;
 background:#ff6b6b;
-color:#fff;
-font-weight:700;
-cursor:pointer;
-}
-
-.message{
-margin-top:8px;
-font-size:14px;
-color:#ffd166;
-}
-
-.route-card{
 display:flex;
 justify-content:space-between;
-margin-bottom:12px;
+align-items:center;
+padding:3vh 5vw;
+font-weight:800;
+}
+
+.top-left{
+font-size:4.5vh;
+}
+
+.clock{
+font-size:6vh;
+}
+
+/* ===== Main Panel ===== */
+.panel{
+background:#f1f3f6;
+color:#222;
+min-height:75vh;
+}
+
+.header-row,
+.row{
+display:grid;
+grid-template-columns: 1.5fr 2fr 2fr 2fr;
+padding:3vh 5vw;
+align-items:center;
+text-align:center;
+}
+
+.header-row{
+font-size:2.2vh;
+color:#777;
+border-bottom:1px solid #ddd;
+}
+
+.row{
+border-top:1px solid #ddd;
+}
+
+/* ✅ 全新社畜風巴士號碼牌 */
+.route-box{
+background:linear-gradient(145deg,#3a3f45,#2a2f34);
+color:#ffffff;
+font-size:8vh;
+font-weight:900;
+display:flex;
+justify-content:center;
+align-items:center;
+border-radius:18px;
+height:12vh;
+box-shadow:
+0 4px 12px rgba(0,0,0,0.25),
+inset 0 0 15px rgba(255,107,107,0.15);
+transition:0.3s;
+}
+
+/* 快到站 → 整塊紅 */
+.route-box.urgent-box{
+background:linear-gradient(145deg,#ff6b6b,#e53935);
+box-shadow:0 0 20px rgba(255,0,0,0.6);
+}
+
+/* NEXT */
+.next{
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:1vh;
+}
+
+.next-top{
+font-size:4.5vh;
+font-weight:800;
+}
+
+.next-bottom{
+font-size:2.5vh;
+color:#666;
+}
+
+/* 跑馬燈 */
+.station-wrapper{
+overflow:hidden;
+width:100%;
+}
+
+.marquee{
+display:inline-block;
+white-space:nowrap;
+padding-left:100%;
+animation:scroll 10s linear infinite;
+font-size:3vh;
+font-weight:600;
+}
+
+@keyframes scroll{
+0%{ transform:translateX(0); }
+100%{ transform:translateX(-100%); }
+}
+
+/* Terminal */
+.terminal{
+font-size:3vh;
+font-weight:700;
+color:#ff6b6b;
+}
+
+/* 緊急 */
+.urgent{
+color:#e53935;
+animation:blink 1s infinite;
+}
+
+@keyframes blink{
+0%{opacity:1;}
+50%{opacity:0.4;}
+100%{opacity:1;}
+}
+
+/* Bottom */
+.bottombar{
+background:#111;
+color:#ff6b6b;
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:2vh 5vw;
+font-size:2.5vh;
 }
 </style>
 </head>
+
 <body>
 
 <div class="topbar">
-<div>📱 通勤 Widget Pro</div>
-<div id="clock"></div>
+<div class="top-left">今日又要返工 😮‍💨</div>
+<div class="clock" id="clock"></div>
 </div>
 
-<div class="glass">
-<input id="routeInput" placeholder="輸入路線 (例如 38)">
-<select id="stopSelect"></select>
-<button onclick="addRoute()">加入</button>
-<button onclick="clearAll()">清空</button>
-<div id="message" class="message"></div>
+<div class="panel">
+
+<div class="header-row">
+<div>路線</div>
+<div>距離崩潰</div>
+<div>你被困喺</div>
+<div>老細等緊你</div>
 </div>
 
-<div id="list" class="glass"></div>
+<div id="busList"></div>
+
+</div>
+
+<div class="bottombar">
+<div>精神狀態：低落 ☕</div>
+<div id="date"></div>
+<div>最後更新時間 <span id="lastUpdate"></span></div>
+</div>
 
 <script>
-let ROUTES = JSON.parse(localStorage.getItem("routes")) || [];
-let etaData = {};
+const SERVICE_TYPE="1";
 
-function save(){
-localStorage.setItem("routes",JSON.stringify(ROUTES));
-}
+const ROUTES=[
+{route:"38",dest:"平田",stopId:"C3672D8D28801773"},
+{route:"42C",dest:"藍田",stopId:"C3672D8D28801773"},
+{route:"40P",dest:"觀塘",stopId:"A7516C49B99EFD78"}
+];
+
+let etaData={};
+let stopNames={};
 
 function updateClock(){
-clock.innerText=new Date().toLocaleTimeString('zh-HK',{
-hour:'2-digit',minute:'2-digit',hour12:false});
+const now=new Date();
+document.getElementById("clock").innerText=
+now.toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit',hour12:false});
+document.getElementById("date").innerText=
+now.toLocaleDateString('zh-HK',{weekday:'short',day:'2-digit',month:'short'});
 }
-setInterval(updateClock,1000);
-updateClock();
 
-/* ✅ 真正穩定 loadStops */
-document.getElementById("routeInput")
-.addEventListener("change",loadStops);
+function getMinutes(t){
+return Math.max(0,Math.floor((new Date(t)-new Date())/60000));
+}
 
-async function loadStops(){
-const route=document.getElementById("routeInput").value.trim();
-const select=document.getElementById("stopSelect");
-const msg=document.getElementById("message");
-
-select.innerHTML="";
-msg.innerText="";
-
-if(!route) return;
-
-let found=false;
-
-/* ✅ 試 O / I */
-for(const bound of ["O","I"]){
-
+async function fetchStopName(stopId){
+if(stopNames[stopId]) return;
 try{
-const res = await fetch(
-`https://data.etabus.gov.hk/v1/transport/kmb/route-stop/${route}/${bound}/1`
-);
-
-if(!res.ok) continue;
-
-const data = await res.json();
-
-if(data.data && data.data.length>0){
-
-for(const s of data.data){
-
-const stopRes = await fetch(
-`https://data.etabus.gov.hk/v1/transport/kmb/stop/${s.stop}`
-);
-
-const stopInfo = await stopRes.json();
-
-const opt=document.createElement("option");
-opt.value=s.stop;
-opt.textContent=`${s.seq}. ${stopInfo.data.name_tc}`;
-select.appendChild(opt);
+const res=await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop/${stopId}`);
+const data=await res.json();
+stopNames[stopId]=data.data.name_tc;
+}catch{
+stopNames[stopId]="--";
+}
 }
 
-found=true;
-break;
-}
-}catch(e){}
+function cleanStationName(name){
+return name.replace(/\s*\(.*?\)/g,"");
 }
 
-if(!found){
-msg.innerText="找不到此路線";
-return;
+function render(){
+const list=document.getElementById("busList");
+list.innerHTML="";
+
+ROUTES.forEach(r=>{
+const row=document.createElement("div");
+row.className="row";
+
+const etas=etaData[r.route]||[];
+const m1=etas[0]?getMinutes(etas[0]):"--";
+const m2=etas[1]?getMinutes(etas[1]):"--";
+
+let statusText=r.dest;
+let extraClass="";
+let boxClass="route-box";
+
+if(m1===0){
+statusText="快啲衝啊！！";
+extraClass="urgent";
+boxClass+=" urgent-box";
+}else if(m1<=3){
+statusText="仲唔跑？😡";
+extraClass="urgent";
 }
 
-select.selectedIndex=0;
-msg.innerText="已載入站點 ✅";
-}
+const station = cleanStationName(stopNames[r.stopId]||"--");
 
-function addRoute(){
-const route=document.getElementById("routeInput").value.trim();
-const stopSelect=document.getElementById("stopSelect");
-const stopId=stopSelect.value;
-const stopName=stopSelect.selectedOptions[0]?.text;
-const msg=document.getElementById("message");
+row.innerHTML=`
+<div class="${boxClass}">${r.route}</div>
 
-if(!route || !stopId){
-msg.innerText="請先載入站點";
-return;
-}
+<div class="next">
+<div class="next-top ${extraClass}">${m1} 分鐘</div>
+<div class="next-bottom">${m2} 分鐘</div>
+</div>
 
-ROUTES.push({route,stopId,stopName});
-save();
-msg.innerText="已加入 ✅";
-fetchETA();
-}
+<div class="station-wrapper">
+<div class="marquee">${station}</div>
+</div>
 
-function clearAll(){
-ROUTES=[];
-save();
-render();
+<div class="terminal ${extraClass}">${statusText}</div>
+`;
+
+list.appendChild(row);
+});
 }
 
 async function fetchETA(){
 for(const r of ROUTES){
+await fetchStopName(r.stopId);
 try{
 const res=await fetch(
-`https://data.etabus.gov.hk/v1/transport/kmb/eta/${r.stopId}/${r.route}/1`
+`https://data.etabus.gov.hk/v1/transport/kmb/eta/${r.stopId}/${r.route}/${SERVICE_TYPE}`
 );
 const data=await res.json();
-etaData[r.route]=data.data.slice(0,1).map(x=>x.eta);
+const filtered=data.data.filter(x=>x.dest_tc.includes(r.dest));
+etaData[r.route]=filtered.slice(0,2).map(x=>x.eta);
 }catch{
 etaData[r.route]=[];
 }
 }
+document.getElementById("lastUpdate").innerText=
+new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit',hour12:false});
 render();
 }
 
-function getMin(t){
-const diff=(new Date(t)-new Date())/60000;
-return Math.max(0,Math.floor(diff));
-}
-
-function render(){
-const list=document.getElementById("list");
-list.innerHTML="";
-
-ROUTES.forEach(r=>{
-const card=document.createElement("div");
-card.className="route-card";
-
-card.innerHTML=`
-<div>
-<div style="font-size:22px;font-weight:800">${r.route}</div>
-<div style="font-size:13px;opacity:0.8">${r.stopName}</div>
-</div>
-<div style="font-size:18px;font-weight:700">
-${etaData[r.route] ?
-getMin(etaData[r.route][0])+" 分" : "--"}
-</div>
-`;
-
-list.appendChild(card);
-});
-}
-
+updateClock();
 fetchETA();
+setInterval(updateClock,1000);
 setInterval(fetchETA,15000);
-
-if("serviceWorker" in navigator){
-navigator.serviceWorker.register("service-worker.js");
-}
 </script>
 
 </body>
