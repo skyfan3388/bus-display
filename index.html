@@ -7,287 +7,1111 @@
 <title>社畜通勤儀表板</title>
 
 <style>
+:root{
+  --cream:#fff8ec;
+  --cream-deep:#f7ead7;
+  --warm-white:#ffffff;
+  --sky:#dff5ff;
+  --sky-deep:#8fdcff;
+  --blue:#357c9c;
+  --blue-dark:#1f526b;
+  --orange:#ffb36b;
+  --orange-deep:#ff8f3f;
+  --text:#2f3f46;
+  --muted:#7a8b91;
+  --border:#f0dfc9;
+  --danger:#ff6b6b;
+  --shadow:rgba(135,98,48,0.14);
+}
+
 html,body{
-margin:0;
-padding:0;
-height:100%;
-font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial;
-background:#1c1f24;
-color:#fff;
+  margin:0;
+  padding:0;
+  min-height:100%;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,"Microsoft JhengHei",sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(255,179,107,0.22), transparent 28%),
+    radial-gradient(circle at top right, rgba(143,220,255,0.28), transparent 30%),
+    linear-gradient(180deg,var(--cream),#f7fbff);
+  color:var(--text);
 }
 
 /* ===== Top Bar ===== */
 .topbar{
-background:#ff6b6b;
-display:flex;
-justify-content:space-between;
-align-items:center;
-padding:3vh 5vw;
-font-weight:800;
+  background:rgba(255,255,255,0.84);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  color:var(--text);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px;
+  padding:14px 20px;
+  font-weight:800;
+  position:sticky;
+  top:0;
+  z-index:10;
+  border-bottom:1px solid rgba(240,223,201,0.85);
+  box-shadow:0 6px 20px var(--shadow);
 }
 
-.top-left{
-font-size:4.5vh;
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
 }
 
-.clock{
-font-size:6vh;
+/* ===== Logo as Update Button ===== */
+.logo-btn{
+  border:0;
+  padding:0;
+  margin:0;
+  background:transparent;
+  cursor:pointer;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
 }
 
-/* ===== Main Panel ===== */
+.logo-btn:hover .logo{
+  transform:scale(1.06) rotate(-4deg);
+  box-shadow:0 6px 16px rgba(31,82,107,0.18);
+}
+
+.logo-btn:active .logo{
+  transform:scale(0.94) rotate(8deg);
+}
+
+.logo-btn:disabled{
+  cursor:not-allowed;
+  opacity:0.7;
+}
+
+.logo-btn.loading .logo{
+  animation:spin 0.8s linear infinite;
+}
+
+.logo{
+  width:42px;
+  height:42px;
+  object-fit:contain;
+  border-radius:12px;
+  background:#ffffff;
+  box-shadow:0 4px 12px rgba(31,82,107,0.12);
+  flex-shrink:0;
+  transition:0.2s ease;
+}
+
+.brand-text{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+
+.title{
+  font-size:22px;
+  line-height:1.15;
+  color:var(--blue-dark);
+  white-space:nowrap;
+}
+
+.subtitle{
+  font-size:13px;
+  font-weight:600;
+  color:var(--muted);
+  margin-top:3px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.top-info{
+  text-align:right;
+  flex-shrink:0;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.date-update{
+  font-size:14px;
+  color:var(--blue-dark);
+  font-weight:900;
+  white-space:nowrap;
+}
+
+.date-update span{
+  color:var(--orange-deep);
+}
+
+.weather-line{
+  font-size:13px;
+  color:var(--muted);
+  font-weight:700;
+  white-space:nowrap;
+}
+
+.update-time{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:700;
+  white-space:nowrap;
+}
+
+/* ===== Main ===== */
 .panel{
-background:#f1f3f6;
-color:#222;
-min-height:75vh;
+  padding:16px;
 }
 
-.header-row,
-.row{
-display:grid;
-grid-template-columns: 1.5fr 2fr 2fr 2fr;
-padding:3vh 5vw;
-align-items:center;
-text-align:center;
+.route-group{
+  margin-bottom:20px;
 }
 
-.header-row{
-font-size:2.2vh;
-color:#777;
-border-bottom:1px solid #ddd;
+.section-title{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:17px;
+  font-weight:950;
+  color:var(--blue-dark);
+  margin:4px 2px 12px;
 }
 
-.row{
-border-top:1px solid #ddd;
+.section-title::before{
+  content:"";
+  width:9px;
+  height:24px;
+  background:linear-gradient(180deg,var(--orange),var(--sky-deep));
+  border-radius:999px;
 }
 
-/* ✅ 全新社畜風巴士號碼牌 */
+.bus-list{
+  display:flex;
+  flex-direction:column;
+  gap:13px;
+}
+
+/* ===== Card ===== */
+.bus-card{
+  position:relative;
+  overflow:hidden;
+  background:
+    linear-gradient(145deg,rgba(255,255,255,0.96),rgba(255,248,236,0.96));
+  border:1px solid rgba(240,223,201,0.9);
+  border-radius:22px;
+  padding:16px;
+  display:grid;
+  grid-template-columns:92px 1fr auto;
+  gap:14px;
+  align-items:center;
+  box-shadow:0 10px 24px rgba(135,98,48,0.11);
+}
+
+.bus-card::after{
+  content:"";
+  position:absolute;
+  right:-40px;
+  top:-40px;
+  width:120px;
+  height:120px;
+  background:rgba(143,220,255,0.26);
+  border-radius:50%;
+  pointer-events:none;
+}
+
 .route-box{
-background:linear-gradient(145deg,#3a3f45,#2a2f34);
-color:#ffffff;
-font-size:8vh;
-font-weight:900;
-display:flex;
-justify-content:center;
-align-items:center;
-border-radius:18px;
-height:12vh;
-box-shadow:
-0 4px 12px rgba(0,0,0,0.25),
-inset 0 0 15px rgba(255,107,107,0.15);
-transition:0.3s;
+  position:relative;
+  z-index:1;
+  background:linear-gradient(135deg,var(--sky),var(--sky-deep));
+  color:var(--blue-dark);
+  font-size:34px;
+  font-weight:950;
+  height:74px;
+  border-radius:18px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.65);
 }
 
-/* 快到站 → 整塊紅 */
 .route-box.urgent-box{
-background:linear-gradient(145deg,#ff6b6b,#e53935);
-box-shadow:0 0 20px rgba(255,0,0,0.6);
+  background:linear-gradient(135deg,#ff8a8a,var(--danger));
+  color:#fff;
+  animation:pulse 1s infinite;
 }
 
-/* NEXT */
-.next{
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
-gap:1vh;
+.bus-main{
+  position:relative;
+  z-index:1;
+  min-width:0;
 }
 
-.next-top{
-font-size:4.5vh;
-font-weight:800;
+.destination{
+  font-size:20px;
+  font-weight:900;
+  margin-bottom:6px;
+  color:var(--text);
 }
 
-.next-bottom{
-font-size:2.5vh;
-color:#666;
+.destination .home-word{
+  color:var(--orange-deep);
 }
 
-/* 跑馬燈 */
-.station-wrapper{
-overflow:hidden;
-width:100%;
+/* ===== Stop Tabs ===== */
+.stop-tabs{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  padding:4px 0 8px;
+  margin-top:4px;
+  scrollbar-width:none;
 }
 
-.marquee{
-display:inline-block;
-white-space:nowrap;
-padding-left:100%;
-animation:scroll 10s linear infinite;
-font-size:3vh;
-font-weight:600;
+.stop-tabs::-webkit-scrollbar{
+  display:none;
 }
 
-@keyframes scroll{
-0%{ transform:translateX(0); }
-100%{ transform:translateX(-100%); }
+.stop-tab{
+  border:1px solid rgba(240,223,201,0.95);
+  background:rgba(255,255,255,0.78);
+  color:var(--blue-dark);
+  border-radius:999px;
+  padding:7px 12px;
+  font-size:13px;
+  font-weight:850;
+  white-space:nowrap;
+  cursor:pointer;
+  flex-shrink:0;
+  transition:0.18s ease;
 }
 
-/* Terminal */
-.terminal{
-font-size:3vh;
-font-weight:700;
-color:#ff6b6b;
+.stop-tab:hover{
+  background:rgba(223,245,255,0.95);
+  transform:translateY(-1px);
 }
 
-/* 緊急 */
-.urgent{
-color:#e53935;
-animation:blink 1s infinite;
+.stop-tab.active{
+  background:linear-gradient(135deg,var(--orange),var(--orange-deep));
+  color:#fff;
+  border-color:transparent;
+  box-shadow:0 4px 12px rgba(255,143,63,0.25);
 }
 
-@keyframes blink{
-0%{opacity:1;}
-50%{opacity:0.4;}
-100%{opacity:1;}
+.station{
+  font-size:14px;
+  color:var(--muted);
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
 }
 
-/* Bottom */
+/*.station::before{
+  content:"上車站：";
+  color:#96a4a9;
+}*/
+
+.eta-box{
+  position:relative;
+  z-index:1;
+  text-align:right;
+  min-width:125px;
+}
+
+.eta-label{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:700;
+  margin-bottom:3px;
+}
+
+.next-time{
+  font-size:30px;
+  font-weight:950;
+  color:var(--blue);
+  line-height:1.1;
+}
+
+.next-time.urgent{
+  color:var(--danger);
+  animation:blink 1s infinite;
+}
+
+.second-time{
+  margin-top:5px;
+  color:var(--muted);
+  font-size:14px;
+}
+
+.company-logo{
+  width:30px;
+  height:18px;
+  object-fit:contain;
+  display:inline-block;
+  vertical-align:middle;
+  margin-right:5px;
+  transform:translateY(-2px);
+}
+
+.next-time .company-logo{
+  width:34px;
+  height:20px;
+}
+
+.second-time .company-logo{
+  width:26px;
+  height:16px;
+  margin-right:4px;
+  transform:translateY(-1px);
+}
+
+.status{
+  margin-top:7px;
+  display:inline-block;
+  font-size:13px;
+  color:var(--blue-dark);
+  background:rgba(223,245,255,0.85);
+  padding:4px 9px;
+  border-radius:999px;
+  font-weight:800;
+}
+
+.status.urgent{
+  color:#ffffff;
+  background:var(--danger);
+}
+
+/* ===== Bottom ===== */
 .bottombar{
-background:#111;
-color:#ff6b6b;
-display:flex;
-justify-content:space-between;
-align-items:center;
-padding:2vh 5vw;
-font-size:2.5vh;
+  color:var(--muted);
+  font-size:13px;
+  padding:0 18px 24px;
+  display:flex;
+  justify-content:flex-end;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.bottombar span{
+  color:var(--blue-dark);
+  font-weight:800;
+}
+
+/* ===== Loading / Empty ===== */
+.message{
+  color:var(--muted);
+  text-align:center;
+  padding:34px 10px;
+  background:rgba(255,255,255,0.65);
+  border:1px dashed rgba(240,223,201,0.9);
+  border-radius:18px;
+}
+
+/* ===== Animations ===== */
+@keyframes blink{
+  0%{opacity:1;}
+  50%{opacity:0.45;}
+  100%{opacity:1;}
+}
+
+@keyframes pulse{
+  0%{box-shadow:0 0 0 rgba(255,107,107,0);}
+  50%{box-shadow:0 0 20px rgba(255,107,107,0.68);}
+  100%{box-shadow:0 0 0 rgba(255,107,107,0);}
+}
+
+@keyframes spin{
+  from{
+    transform:rotate(0deg);
+  }
+  to{
+    transform:rotate(360deg);
+  }
+}
+
+/* ===== Mobile ===== */
+@media(max-width:600px){
+  .topbar{
+    padding:12px 14px;
+    gap:10px;
+    align-items:flex-start;
+  }
+
+  .logo{
+    width:38px;
+    height:38px;
+    border-radius:10px;
+  }
+
+  .logo-btn{
+    border-radius:10px;
+  }
+
+  .title{
+    font-size:19px;
+  }
+
+  .subtitle{
+    font-size:12px;
+    max-width:145px;
+  }
+
+  .top-info{
+    gap:3px;
+  }
+
+  .date-update{
+    font-size:12px;
+  }
+
+  .weather-line{
+    font-size:12px;
+  }
+
+  .update-time{
+    font-size:11px;
+  }
+
+  .panel{
+    padding:12px;
+  }
+
+  .bus-card{
+    grid-template-columns:74px 1fr;
+    grid-template-areas:
+      "route main"
+      "route eta";
+    padding:14px;
+    border-radius:20px;
+  }
+
+  .route-box{
+    grid-area:route;
+    width:74px;
+    height:100%;
+    min-height:122px;
+    font-size:28px;
+  }
+
+  .bus-main{
+    grid-area:main;
+  }
+
+  .eta-box{
+    grid-area:eta;
+    text-align:left;
+    min-width:0;
+  }
+
+  .next-time{
+    font-size:27px;
+  }
+
+  .destination{
+    font-size:18px;
+  }
+
+  .stop-tabs{
+    padding-bottom:8px;
+  }
+
+  .stop-tab{
+    font-size:12px;
+    padding:6px 10px;
+  }
 }
 </style>
 </head>
 
 <body>
 
+<!-- Top Bar -->
 <div class="topbar">
-<div class="top-left">今日又要返工 😮‍💨</div>
-<div class="clock" id="clock"></div>
+  <div class="brand">
+    <button class="logo-btn" id="updateBtn" onclick="manualUpdate()" aria-label="更新巴士到站時間" title="更新巴士到站時間">
+      <img class="logo" src="icon/icon.png" alt="回家巴士 Logo">
+    </button>
+
+    <div class="brand-text">
+      <div class="title">回家巴士</div>
+      <div class="subtitle">陪你睇住下一班歸家的車</div>
+    </div>
+  </div>
+
+  <div class="top-info">
+    <div class="date-update">
+      <span id="dateText">2026年10月02日 週五</span>
+    </div>
+    <div class="weather-line" id="weatherText">
+      天氣：大雨 · 23°C
+    </div>
+    <div class="update-time" id="updateTime">
+      剛剛更新：<span id="lastUpdate">--</span>
+    </div>
+  </div>
 </div>
 
+<!-- Main Panel -->
 <div class="panel">
 
-<div class="header-row">
-<div>路線</div>
-<div>距離崩潰</div>
-<div>你被困喺</div>
-<div>老細等緊你</div>
-</div>
+  <div class="route-group">
+    <div class="section-title">返蘇屋邨</div>
+    <div class="bus-list" id="busList-SO-UK">
+      <div class="message">正在幫你看看返蘇屋邨嘅巴士...</div>
+    </div>
+  </div>
 
-<div id="busList"></div>
+  <div class="route-group">
+    <div class="section-title">返怡峰苑</div>
+    <div class="bus-list" id="busList-YI-FUNG">
+      <div class="message">正在幫你看看返怡峰苑嘅巴士...</div>
+    </div>
+  </div>
 
-</div>
-
-<div class="bottombar">
-<div>精神狀態：低落 ☕</div>
-<div id="date"></div>
-<div>最後更新時間 <span id="lastUpdate"></span></div>
 </div>
 
 <script>
-const SERVICE_TYPE="1";
+const SERVICE_TYPE = "1";
 
-const ROUTES=[
-{route:"38",dest:"平田",stopId:"C3672D8D28801773"},
-{route:"42C",dest:"藍田",stopId:"C3672D8D28801773"},
-{route:"40P",dest:"觀塘",stopId:"A7516C49B99EFD78"}
+/*
+  已加入 company / providers 支援。
+
+  用法一：普通九巴路線
+  company:"kmb"
+
+  用法二：城巴路線
+  company:"ctb"
+
+  用法三：同一路線同一站同時查九巴 + 城巴
+  providers:[
+    { company:"kmb", stopId:"九巴站 ID" },
+    { company:"ctb", stopId:"城巴站 ID" }
+  ]
+
+  注意：
+  你現有 stopId 全部係九巴 stopId。
+  城巴 API 一定要用城巴自己的 stopId。
+*/
+
+const ROUTE_GROUPS = [
+  {
+    id:"SO-UK",
+    title:"返蘇屋邨",
+    routes:[
+      {
+        company:"kmb",
+        route:"31B",
+        dest:"奧運站",
+        stopNameText:"葵涌業成街",
+        stopId:"C3672D8D28801773"
+      },
+      {
+        company:"kmb",
+        route:"36B",
+        dest:"高鐵(西九龍站)",
+        stopNameText:"葵涌業成街",
+        stopId:"C3672D8D28801773"
+      },
+      {
+        company:"kmb",
+        route:"35A",
+        dest:"尖沙咀東",
+        stopNameText:"石籬邨石俊樓",
+        stopId:"A7516C49B99EFD78"
+      },
+      {
+        company:"kmb",
+        route:"35A",
+        dest:"尖沙咀東",
+        stopNameText:"葵涌業成街",
+        stopId:"C3672D8D28801773"
+      },
+      {
+        company:"kmb",
+        route:"37",
+        dest:"奧運站",
+        stopNameText:"葵盛(中)",
+        stopId:"98A42EFF69A579A0"
+      },
+
+      /*
+        112 係聯營線。
+        你原本呢個 stopId 係九巴 stopId。
+        請將 ctbStopId 填成城巴的「山東街 朗豪坊」stopId。
+      */
+      {
+        route:"112",
+        dest:"長沙灣(蘇屋邨)",
+        stopNameText:"山東街 朗豪坊",
+        providers:[
+          {
+            company:"kmb",
+            stopId:"8552E415E0C7B113",
+            serviceType:"1"
+          },
+          {
+            company:"ctb",
+            stopId:"001552"
+          }
+        ]
+      },
+
+      /*
+        112 深水埗楓樹街。
+        請將 ctbStopId 填成城巴的「深水埗 楓樹街」stopId。
+      */
+      {
+        route:"112",
+        dest:"長沙灣(蘇屋邨)",
+        stopNameText:"深水埗 楓樹街",
+        providers:[
+          {
+            company:"kmb",
+            stopId:"1A85A6C132C4197F",
+            serviceType:"1"
+          },
+          {
+            company:"ctb",
+            stopId:"001426"
+          }
+        ]
+      },
+
+      /*
+        793 及 970 多數用城巴 / 新巴 API 資料。
+        你原本 stopId 似係九巴站 ID，所以如果查唔到係正常。
+        請填入城巴 stopId。
+      */
+      {
+        company:"ctb",
+        route:"793",
+        dest:"長沙灣(蘇屋邨)",
+        stopNameText:"深水埗 楓樹街",
+        stopId:"001426"
+      },
+      {
+        company:"ctb",
+        route:"970",
+        dest:"長沙灣(蘇屋邨)",
+        stopNameText:"山東街 朗豪坊",
+        stopId:"001552"
+      },
+      {
+        company:"ctb",
+        route:"970",
+        dest:"長沙灣(蘇屋邨)",
+        stopNameText:"深水埗 楓樹街",
+        stopId:"001426"
+      }
+    ]
+  },
+  {
+    id:"YI-FUNG",
+    title:"返怡峰苑",
+    routes:[
+      {
+        company:"kmb",
+        route:"38",
+        dest:"平田",
+        stopNameText:"葵盛(東)",
+        stopId:"7CB0618D76B5F553"
+      }
+    ]
+  }
 ];
 
-let etaData={};
-let stopNames={};
+let etaData = {};
+let isUpdating = false;
+let selectedStops = {};
 
-function updateClock(){
-const now=new Date();
-document.getElementById("clock").innerText=
-now.toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit',hour12:false});
-document.getElementById("date").innerText=
-now.toLocaleDateString('zh-HK',{weekday:'short',day:'2-digit',month:'short'});
+/* 將原本 flat routes 自動整理成 Tabs 用的結構 */
+function normalizeRoutes(routes){
+  const map = {};
+
+  routes.forEach(r => {
+    const routeKey = getRouteKey(r);
+
+    if(!map[routeKey]){
+      map[routeKey] = {
+        route:r.route,
+        dest:r.dest,
+        stops:[]
+      };
+    }
+
+    map[routeKey].stops.push({
+      stopNameText:r.stopNameText,
+      stopId:r.stopId || "",
+      company:r.company || "",
+      providers:getProvidersFromRoute(r)
+    });
+  });
+
+  return Object.values(map);
+}
+
+function getProvidersFromRoute(r){
+  if(Array.isArray(r.providers)){
+    return r.providers
+      .filter(p => p && p.company)
+      .map(p => ({
+        company:p.company,
+        stopId:p.stopId || "",
+        serviceType:p.serviceType || SERVICE_TYPE
+      }));
+  }
+
+  return [
+    {
+      company:r.company || "kmb",
+      stopId:r.stopId || "",
+      serviceType:r.serviceType || SERVICE_TYPE
+    }
+  ];
+}
+
+function updateTopInfo(){
+  const now = new Date();
+
+  const weekdays = ["週日","週一","週二","週三","週四","週五","週六"];
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2,"0");
+  const d = String(now.getDate()).padStart(2,"0");
+  const w = weekdays[now.getDay()];
+
+  document.getElementById("dateText").innerText =
+    `${y}年${m}月${d}日 ${w}`;
 }
 
 function getMinutes(t){
-return Math.max(0,Math.floor((new Date(t)-new Date())/60000));
+  if(!t) return "--";
+
+  const diff = Math.floor((new Date(t) - new Date()) / 60000);
+
+  if(diff < 0) return 0;
+
+  return diff;
 }
 
-async function fetchStopName(stopId){
-if(stopNames[stopId]) return;
-try{
-const res=await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop/${stopId}`);
-const data=await res.json();
-stopNames[stopId]=data.data.name_tc;
-}catch{
-stopNames[stopId]="--";
-}
+function getEtaText(value){
+  if(value === "--") return "--";
+  if(value === 0) return "到左啦!";
+  return `${value} 分鐘`;
 }
 
-function cleanStationName(name){
-return name.replace(/\s*\(.*?\)/g,"");
+function getWarmStatus(m1){
+  if(m1 === "--"){
+    return "暫時未有到站時間";
+  }
+
+  if(m1 === 0){
+    return "快到啦，準備出發";
+  }
+
+  if(m1 <= 3){
+    return "差不多到，可以行去車站";
+  }
+
+  if(m1 <= 8){
+    return "時間剛好，慢慢準備";
+  }
+
+  return "仲有少少時間，唔使急";
+}
+
+function getRouteKey(r){
+  return `${r.route}_${r.dest}`;
+}
+
+function getEtaKey(r, stop){
+  return `${r.route}_${r.dest}_${stop.stopNameText}`;
+}
+
+function companyLogo(company){
+  if(company === "kmb"){
+    return "icon/kmb_logo.png";
+  }
+
+  if(company === "ctb"){
+    return "icon/citybus_logo.png";
+  }
+
+  return "";
+}
+
+function companyAlt(company){
+  if(company === "kmb") return "九巴";
+  if(company === "ctb") return "城巴";
+  return company || "巴士公司";
+}
+
+function selectStop(routeKey, stopIndex){
+  selectedStops[routeKey] = stopIndex;
+  render();
+}
+
+function renderGroup(group){
+  const list = document.getElementById(`busList-${group.id}`);
+  list.innerHTML = "";
+
+  const normalizedRoutes = normalizeRoutes(group.routes);
+
+  if(normalizedRoutes.length === 0){
+    list.innerHTML = `<div class="message">呢組暫時未有巴士路線</div>`;
+    return;
+  }
+
+  normalizedRoutes.forEach(r => {
+    const card = document.createElement("div");
+    card.className = "bus-card";
+
+    const routeKey = getRouteKey(r);
+
+    if(selectedStops[routeKey] === undefined){
+      selectedStops[routeKey] = 0;
+    }
+
+    let selectedIndex = selectedStops[routeKey];
+
+    if(selectedIndex >= r.stops.length){
+      selectedIndex = 0;
+      selectedStops[routeKey] = 0;
+    }
+
+    const selectedStop = r.stops[selectedIndex];
+
+    const key = getEtaKey(r, selectedStop);
+    const etas = etaData[key] || [];
+
+    const firstEta = etas[0] || null;
+    const secondEta = etas[1] || null;
+
+    const m1 = firstEta ? getMinutes(firstEta.eta) : "--";
+    const m2 = secondEta ? getMinutes(secondEta.eta) : "--";
+
+    let urgentClass = "";
+    let boxClass = "route-box";
+
+    if(m1 === 0){
+      urgentClass = "urgent";
+      boxClass += " urgent-box";
+    }else if(m1 !== "--" && m1 <= 3){
+      urgentClass = "urgent";
+    }
+
+    const statusText = getWarmStatus(m1);
+
+    const tabsHtml = r.stops.map((stop, index) => {
+      const activeClass = index === selectedIndex ? "active" : "";
+
+      return `
+        <button
+          type="button"
+          class="stop-tab ${activeClass}"
+          onclick="selectStop('${routeKey}', ${index})"
+        >
+          ${stop.stopNameText}
+        </button>
+      `;
+    }).join("");
+
+    const firstCompanyHtml = firstEta && companyLogo(firstEta.company)
+  ? `<img class="company-logo" src="${companyLogo(firstEta.company)}" alt="${companyAlt(firstEta.company)}">`
+  : "";
+
+    const secondCompanyHtml = secondEta && companyLogo(secondEta.company)
+  ? `<img class="company-logo" src="${companyLogo(secondEta.company)}" alt="${companyAlt(secondEta.company)}">`
+  : "";
+
+    card.innerHTML = `
+      <div class="${boxClass}">
+        ${r.route}
+      </div>
+
+      <div class="bus-main">
+        <div class="destination">
+          往 <span class="home-word">${r.dest}</span>
+        </div>
+
+        <div class="stop-tabs">
+          ${tabsHtml}
+        </div>
+
+        <!-- <div class="station">${selectedStop.stopNameText}</div> -->
+
+        
+      </div>
+
+      <div class="eta-box">
+        <div class="next-time ${urgentClass}">
+          ${firstCompanyHtml}${getEtaText(m1)}
+        </div>
+        <div class="second-time">
+          下一班：${secondCompanyHtml}${getEtaText(m2)}
+        </div>
+        <div class="status ${urgentClass}">
+          ${statusText}
+        </div>
+      </div>
+    `;
+
+    list.appendChild(card);
+  });
 }
 
 function render(){
-const list=document.getElementById("busList");
-list.innerHTML="";
-
-ROUTES.forEach(r=>{
-const row=document.createElement("div");
-row.className="row";
-
-const etas=etaData[r.route]||[];
-const m1=etas[0]?getMinutes(etas[0]):"--";
-const m2=etas[1]?getMinutes(etas[1]):"--";
-
-let statusText=r.dest;
-let extraClass="";
-let boxClass="route-box";
-
-if(m1===0){
-statusText="快啲衝啊！！";
-extraClass="urgent";
-boxClass+=" urgent-box";
-}else if(m1<=3){
-statusText="仲唔跑？😡";
-extraClass="urgent";
+  ROUTE_GROUPS.forEach(group => renderGroup(group));
 }
 
-const station = cleanStationName(stopNames[r.stopId]||"--");
+function getEtaUrl(provider, route){
+  if(provider.company === "kmb"){
+    return `https://data.etabus.gov.hk/v1/transport/kmb/eta/${provider.stopId}/${route}/${provider.serviceType || SERVICE_TYPE}`;
+  }
 
-row.innerHTML=`
-<div class="${boxClass}">${r.route}</div>
+  if(provider.company === "ctb"){
+    return `https://rt.data.gov.hk/v2/transport/citybus/eta/CTB/${provider.stopId}/${route}`;
+  }
 
-<div class="next">
-<div class="next-top ${extraClass}">${m1} 分鐘</div>
-<div class="next-bottom">${m2} 分鐘</div>
-</div>
+  return "";
+}
 
-<div class="station-wrapper">
-<div class="marquee">${station}</div>
-</div>
+function normalizeDestText(text){
+  return String(text || "")
+    .replace(/\s/g, "")
+    .replace("（", "(")
+    .replace("）", ")");
+}
 
-<div class="terminal ${extraClass}">${statusText}</div>
-`;
+function isSameDestination(apiDest, targetDest){
+  const a = normalizeDestText(apiDest);
+  const b = normalizeDestText(targetDest);
 
-list.appendChild(row);
-});
+  if(!a || !b) return false;
+
+  if(a.includes(b)) return true;
+  if(b.includes(a)) return true;
+
+  /*
+    特別處理：
+    你畫面想顯示「長沙灣(蘇屋邨)」，
+    但 API 有機會只寫「蘇屋」或「長沙灣」。
+  */
+  if(b.includes("蘇屋") && a.includes("蘇屋")) return true;
+  if(b.includes("長沙灣") && a.includes("長沙灣")) return true;
+
+  return false;
+}
+
+async function fetchEtaFromProvider(route, dest, provider){
+  if(!provider.stopId){
+    return [];
+  }
+
+  const url = getEtaUrl(provider, route);
+
+  if(!url){
+    return [];
+  }
+
+  try{
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const raw = Array.isArray(data.data) ? data.data : [];
+
+    return raw
+      .filter(x => {
+        return x && x.eta && isSameDestination(x.dest_tc, dest);
+      })
+      .map(x => ({
+        eta:x.eta,
+        company:provider.company,
+        dest_tc:x.dest_tc || "",
+        route:x.route || route
+      }));
+
+  }catch(error){
+    console.error("ETA error:", route, provider.company, error);
+    return [];
+  }
 }
 
 async function fetchETA(){
-for(const r of ROUTES){
-await fetchStopName(r.stopId);
-try{
-const res=await fetch(
-`https://data.etabus.gov.hk/v1/transport/kmb/eta/${r.stopId}/${r.route}/${SERVICE_TYPE}`
-);
-const data=await res.json();
-const filtered=data.data.filter(x=>x.dest_tc.includes(r.dest));
-etaData[r.route]=filtered.slice(0,2).map(x=>x.eta);
-}catch{
-etaData[r.route]=[];
-}
-}
-document.getElementById("lastUpdate").innerText=
-new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit',hour12:false});
-render();
+  if(isUpdating) return;
+
+  isUpdating = true;
+
+  const btn = document.getElementById("updateBtn");
+  btn.disabled = true;
+  btn.classList.add("loading");
+
+  for(const group of ROUTE_GROUPS){
+    for(const r of group.routes){
+      const routeForKey = {
+        route:r.route,
+        dest:r.dest
+      };
+
+      const stop = {
+        stopNameText:r.stopNameText,
+        stopId:r.stopId || ""
+      };
+
+      const key = getEtaKey(routeForKey, stop);
+
+      const providers = getProvidersFromRoute(r);
+
+      let allEtas = [];
+
+      for(const provider of providers){
+        const providerEtas = await fetchEtaFromProvider(
+          r.route,
+          r.dest,
+          provider
+        );
+
+        allEtas = allEtas.concat(providerEtas);
+      }
+
+      allEtas.sort((a,b) => {
+        return new Date(a.eta) - new Date(b.eta);
+      });
+
+      etaData[key] = allEtas.slice(0,2);
+    }
+  }
+
+  document.getElementById("lastUpdate").innerText =
+    new Date().toLocaleTimeString("zh-HK", {
+      hour:"2-digit",
+      minute:"2-digit",
+      second:"2-digit",
+      hour12:false
+    });
+
+  render();
+
+  btn.disabled = false;
+  btn.classList.remove("loading");
+
+  isUpdating = false;
 }
 
-updateClock();
+function manualUpdate(){
+  fetchETA();
+}
+
+/* Initial Load */
+updateTopInfo();
+render();
 fetchETA();
-setInterval(updateClock,1000);
-setInterval(fetchETA,15000);
+
+/* Auto Update */
+setInterval(updateTopInfo, 1000);
+setInterval(fetchETA, 5000);
 </script>
 
 </body>
