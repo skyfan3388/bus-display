@@ -2,116 +2,277 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>河口湖拍照景點地圖</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>河口湖拍照與美食地圖</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#f3f6f8;color:#203342;font-family:system-ui,-apple-system,"Microsoft JhengHei",sans-serif}
-main{max-width:1100px;margin:auto;padding:18px}
-header{margin-bottom:14px}
-h1{font-size:24px;margin:0 0 8px}
-header p{font-size:14px;margin:0;color:#5c6d79;line-height:1.7}
-.toolbar{display:flex;gap:8px;align-items:center;margin:12px 0;flex-wrap:wrap}
-button,.maplink{font:inherit}
-.reset{background:#fff;border:1px solid #cbd5df;border-radius:8px;padding:8px 14px;cursor:pointer;color:#244759}
-#map{height:480px;width:100%;border-radius:14px;background:#dfe9ed;z-index:0}
-.status{font-size:12px;color:#647885}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
-.card{background:#fff;padding:14px;border:1px solid #e1e8ed;border-radius:12px;display:flex;gap:12px;align-items:flex-start}
-.badge{width:30px;height:30px;flex-shrink:0;background:#167c80;color:white;border-radius:50%;display:grid;place-items:center;font-weight:700}
-.card.extra .badge{background:#956342}
-.title{background:none;border:0;padding:0;text-align:left;font-size:16px;font-weight:700;color:#203342;cursor:pointer}
+body{margin:0;background:#f2f6f6;color:#233d43;font-family:system-ui,-apple-system,"Microsoft JhengHei",sans-serif}
+main{max-width:1150px;margin:auto;padding:20px}
+h1{font-size:25px;margin:0 0 8px}
+.intro{font-size:14px;line-height:1.8;color:#61747a;margin:0}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin:15px 0;align-items:center}
+button{font:inherit;cursor:pointer}
+.filter{border:1px solid #cbdad9;background:white;color:#35575b;padding:9px 13px;border-radius:20px}
+.filter.active{background:#176b68;color:white;border-color:#176b68}
+.status{font-size:12px;color:#687c80;margin:8px 0}
+#map{height:470px;border-radius:16px;background:#dce9e8;z-index:0;border:1px solid #d2dfdf}
+.legend{font-size:12px;line-height:1.8;margin:10px 0;color:#65797d}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin-top:14px}
+.card{background:white;border:1px solid #dce6e5;border-radius:14px;padding:17px}
+.cardtop{display:flex;gap:11px;align-items:flex-start;margin-bottom:10px}
+.badge{width:32px;height:32px;flex-shrink:0;border-radius:50%;display:grid;place-items:center;color:white;background:#167772;font-weight:700}
+.card.autumn .badge{background:#b56b35}
+.card.extra .badge{background:#65569c}
+.title{padding:0;background:none;border:0;text-align:left;color:#233d43;font-weight:700;font-size:17px;line-height:1.5}
 .title:hover{text-decoration:underline}
-.desc{font-size:13px;color:#637481;margin:5px 0 9px;line-height:1.5}
-.maplink{font-size:13px;color:#087e87;text-decoration:none}
-.maplink:hover{text-decoration:underline}
-.marker{border:3px solid white;border-radius:50%;background:#167c80;color:#fff;box-shadow:0 2px 7px #0005;display:grid;place-items:center;font-weight:bold;font-size:15px}
-.marker.extra{background:#956342}
-.popup-title{font-weight:700;font-size:15px;margin-bottom:7px}
-.popup-note{line-height:1.6;margin-bottom:9px}
-.footnote{font-size:12px;line-height:1.8;color:#637481;margin-top:13px}
-@media(max-width:600px){
-main{padding:12px}
-h1{font-size:21px}
-#map{height:390px}
+.label{font-size:12px;color:#167772;margin-top:3px}
+.section{font-size:13px;line-height:1.8;margin:10px 0}
+.section strong{color:#38565b}
+.food{background:#fbf6ed;padding:11px 12px;border-radius:9px;margin-top:10px}
+.foodhead{font-size:13px;font-weight:700;color:#825c2b;margin-bottom:7px}
+.fooditem{font-size:13px;line-height:1.7;margin:7px 0}
+.fooditem p{margin:2px 0;color:#6e7067}
+a{color:#116e77;text-decoration:none}
+a:hover{text-decoration:underline}
+.spotlink{display:inline-block;font-size:13px;margin-top:8px}
+.marker{border-radius:50%;border:3px solid white;background:#167772;box-shadow:0 2px 7px #0005;display:grid;place-items:center;color:white;font-size:15px;font-weight:700}
+.marker.autumn{background:#b56b35}
+.marker.extra{background:#65569c}
+.pop{font-size:13px;line-height:1.7}
+.pop h3{font-size:16px;margin:0 0 8px}
+.pop p{margin:7px 0}
+.pop .rest{border-top:1px solid #e4e9e7;padding-top:8px}
+footer{font-size:12px;line-height:1.9;color:#718286;margin-top:17px}
+@media(max-width:650px){
+main{padding:13px}
+h1{font-size:22px}
+#map{height:370px}
 .grid{grid-template-columns:1fr}
+.card{padding:14px}
+.filter{font-size:13px;padding:8px 11px}
 }
 </style>
 </head>
 <body>
 <main>
-<header>
-<h1>河口湖・7 個拍照景點</h1>
-<p>拖曳或縮放地圖探索位置。點選編號或景點名稱，可查看標記。</p>
-</header>
-<div class="toolbar">
-<button class="reset" id="reset">顯示全部景點</button>
-<span class="status" id="status" role="status">正在載入地圖；下方景點連結可直接使用。</span>
+<h1>河口湖｜拍照 × 美食地圖</h1>
+<p class="intro">點選景點編號，查看可以拍到的畫面與周邊用餐選擇。餐廳連結會另開 Google 地圖。</p>
+
+<div class="tools" aria-label="景點篩選">
+<button class="filter active" data-filter="all">全部景點</button>
+<button class="filter" data-filter="fuji">富士山取景</button>
+<button class="filter" data-filter="autumn">紅葉主題</button>
+<button class="filter" id="reset">顯示全部範圍</button>
 </div>
-<div id="map" aria-label="河口湖拍照景點互動地圖"></div>
-<div class="grid" id="list"></div>
-<p class="footnote">
-綠色：河口湖周邊景點｜棕色：富士吉田市景點。<br>
-標記為概略位置，並非精確入口、停車場或拍攝站位。④為纜車山腳乘車處；⑦為忠靈塔附近，並非可開車直達的目的地。<br>
-若底圖空白，可能是外部圖資被預覽環境限制；請使用各景點的 Google 地圖連結。
-</p>
+<div id="map" aria-label="河口湖拍照景點地圖"></div>
+<p class="status" id="status" role="status">正在載入地圖；下方景點與餐廳連結可直接使用。</p>
+<p class="legend">綠色：富士山取景景點｜橙色：紅葉迴廊｜紫色：富士吉田市景點。餐廳列在景點資訊內，未另設定位標記。</p>
+<div class="grid" id="cards"></div>
+
+<footer>
+標記是景點概略位置，不代表精確入口、停車場或拍攝站位。<br>
+④標示纜車山腳乘車處，主要觀景位置在山上；⑦標示忠靈塔附近，須步行上山。<br>
+櫻花、花卉與紅葉依季節及當年生長狀況而異；富士山可見度取決於天氣，倒影亦需湖面平靜。<br>
+餐廳未標示步行分鐘，請開啟地圖依實際出發點確認路線；營業時間與菜單以店方公告為準。<br>
+若底圖無法載入，請直接使用各卡片的 Google 地圖連結。
+</footer>
 </main>
+
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const places=[
-{id:1,name:"大石公園",jp:"大石公園 河口湖",lat:35.52306,lng:138.74615,note:"花卉、湖景與富士山構圖。"},
-{id:2,name:"產屋崎（產屋ヶ崎）",jp:"産屋ヶ崎 河口湖",lat:35.5147,lng:138.7697,note:"湖畔富士山取景點。"},
-{id:3,name:"長崎公園",jp:"長崎公園 河口湖",lat:35.52116,lng:138.75746,note:"北岸岬角的自然湖景。"},
-{id:4,name:"富士山全景纜車",jp:"河口湖 富士山パノラマロープウェイ 河口湖畔駅",lat:35.5038,lng:138.7729,note:"此處標示山腳乘車處；展望台需上山。"},
-{id:5,name:"紅葉迴廊",jp:"河口湖 もみじ回廊",lat:35.5265,lng:138.7618,note:"梨川沿線的紅葉散策區。"},
-{id:6,name:"音樂與森林美術館",jp:"河口湖 音楽と森の美術館",lat:35.52242,lng:138.76871,note:"庭園與建築取景。"},
-{id:7,name:"新倉山淺間公園",jp:"新倉山浅間公園 忠霊塔",lat:35.5012,lng:138.8014,note:"位於富士吉田市，標示忠靈塔附近；需步行上山。",extra:true}
+{
+id:1,name:"大石公園",query:"大石公園 河口湖",
+lat:35.52306,lng:138.74615,fuji:true,type:"",
+label:"富士山＋湖景＋季節花卉",
+photo:"以花卉作前景，搭配河口湖與富士山；適合風景照、旅行人像。",
+tip:"花卉依季節而異，並非全年都有相同花海。",
+foods:[
+{name:"BRAND NEW DAY COFFEE",query:"BRAND NEW DAY COFFEE 富士大石ハナテラス",text:"富士大石 Hana Terrace 內的咖啡店；露台可欣賞富士山。"},
+{name:"葡萄屋 kofu ハナテラス café",query:"葡萄屋kofu ハナテラスcafé",text:"同在 Hana Terrace 內，主打山梨水果加工品及甜點；適合下午茶。"}
+]
+},
+{
+id:2,name:"產屋崎（產屋ヶ崎）",query:"産屋ヶ崎 河口湖",
+lat:35.5147,lng:138.7697,fuji:true,type:"",
+label:"富士山＋湖面；春季櫻花",
+photo:"拍攝富士山與湖景；天氣配合、湖面平靜時有機會拍到逆富士倒影。",
+tip:"春季可加入櫻花；倒影不是每次都能看到。",
+foods:[
+{name:"食事處 湖波（こなみ）",query:"食事処 湖波 河口湖 浅川367-1",text:"東岸淺川地區，提供餺飥、蕎麥麵、定食與魚料理。可接續東岸行程，不是在岬角內。"}
+]
+},
+{
+id:3,name:"長崎公園",query:"長崎公園 河口湖",
+lat:35.52116,lng:138.75746,fuji:true,type:"",
+label:"富士山稜線＋自然湖岸",
+photo:"拍富士山延伸至山麓的稜線、開闊湖景；春季可拍櫻花與富士山。",
+tip:"沿岬角尋找構圖，注意狹窄步道與其他遊客。",
+foods:[
+{name:"もみじ亭",query:"もみじ亭 河口湖 河口3067-1",text:"北岸一帶的用餐選擇；味噌餺飥、忍野蕎麥麵。需另行前往，非公園內餐廳。"}
+]
+},
+{
+id:4,name:"富士山全景纜車",query:"河口湖 富士山パノラマロープウェイ 河口湖畔駅",
+lat:35.5038,lng:138.7729,fuji:true,type:"",
+label:"山上拍富士山；高處拍河口湖",
+photo:"從山上展望區拍富士山與山麓；往不同方向取景，可拍河口湖全景。",
+tip:"此標記是山腳乘車處，不是山上展望台。",
+foods:[
+{name:"天上山 河口湖莊",query:"天上山 河口湖荘",text:"可安排在纜車上山前後用餐，提供山梨名物餺飥。"}
+]
+},
+{
+id:5,name:"紅葉迴廊",query:"河口湖 もみじ回廊",
+lat:35.5265,lng:138.7618,fuji:false,type:"autumn",
+label:"紅葉隧道＋落葉河道＋季節點燈",
+photo:"拍楓葉覆蓋的河道、樹冠隧道及秋季人像；祭典期間可拍夜間點燈。",
+tip:"以紅葉為主，不把迴廊內當作開闊富士山全景點。點燈依活動公告。",
+foods:[
+{name:"もみじ亭",query:"もみじ亭 河口湖 河口3067-1",text:"北岸餺飥與蕎麥麵餐廳，可與紅葉散策一起安排。"}
+]
+},
+{
+id:6,name:"音樂與森林美術館",query:"河口湖 音楽と森の美術館",
+lat:35.52242,lng:138.76871,fuji:true,type:"",
+label:"歐式庭園＋建築；晴天加入富士山",
+photo:"拍庭園、歐式建築與浪漫人像；晴朗時可選擇富士山入鏡的角度。",
+tip:"不是園內每個位置都能看到富士山。",
+foods:[
+{name:"森のレストラン",query:"河口湖 音楽と森の美術館 森のレストラン",text:"館內餐廳，提供西式午餐與甜點，露台可欣賞富士山。需一併考慮美術館入館費。"}
+]
+},
+{
+id:7,name:"新倉山淺間公園",query:"新倉山浅間公園 忠霊塔",
+lat:35.5012,lng:138.8014,fuji:true,type:"extra",
+label:"五重塔＋富士山＋市街",
+photo:"前往展望平台，拍攝忠靈塔、富士山及富士吉田市街；春季可加入櫻花。",
+tip:"位於富士吉田市，不在河口湖湖畔；經典角度需步行上山。",
+foods:[
+{name:"富士の食事処 白米",query:"富士の食事処 白米 富士吉田",text:"日式御膳。位於公園山腳入口附近，不是山上展望平台旁。"}
+]
+}
 ];
-const link=p=>"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(p.jp);
+
+const mapUrl=q=>"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(q);
+const cards=document.getElementById("cards");
+const statusEl=document.getElementById("status");
 let map=null;
 const markers={};
-const list=document.getElementById("list");
-places.forEach(p=>{
-const card=document.createElement("article");
-card.className="card"+(p.extra?" extra":"");
-card.innerHTML=`<span class="badge">${p.id}</span><div><button class="title">${p.name}</button><p class="desc">${p.note}</p><a class="maplink" href="${link(p)}" target="_blank" rel="noopener noreferrer">在 Google 地圖開啟 ↗</a></div>`;
-card.querySelector("button").onclick=()=>{
+let currentFilter="all";
+
+function matches(p){
+return currentFilter==="all"||
+(currentFilter==="fuji"&&p.fuji)||
+(currentFilter==="autumn"&&p.id===5);
+}
+function focusPlace(p){
 if(map&&markers[p.id]){
 map.setView([p.lat,p.lng],15);
 markers[p.id].openPopup();
 document.getElementById("map").scrollIntoView({behavior:"smooth",block:"center"});
 }else{
-document.getElementById("status").textContent="互動地圖未能載入，請使用「在 Google 地圖開啟」。";
+statusEl.textContent="互動地圖未載入，請使用景點或餐廳的 Google 地圖連結。";
 }
-};
-list.appendChild(card);
+}
+function drawCards(){
+cards.innerHTML="";
+places.filter(matches).forEach(p=>{
+const article=document.createElement("article");
+article.className="card "+p.type;
+article.innerHTML=`
+<div class="cardtop">
+<span class="badge">${p.id}</span>
+<div>
+<button class="title">${p.name}</button>
+<div class="label">${p.label}</div>
+</div>
+</div>
+<div class="section"><strong>可以拍到：</strong>${p.photo}</div>
+<div class="section"><strong>拍攝提醒：</strong>${p.tip}</div>
+<a class="spotlink" href="${mapUrl(p.query)}" target="_blank" rel="noopener noreferrer">景點 Google 地圖 ↗</a>
+<div class="food">
+<div class="foodhead">附近／順路用餐</div>
+${p.foods.map(f=>`
+<div class="fooditem">
+<a href="${mapUrl(f.query)}" target="_blank" rel="noopener noreferrer">${f.name} ↗</a>
+<p>${f.text}</p>
+</div>`).join("")}
+</div>`;
+article.querySelector(".title").onclick=()=>focusPlace(p);
+cards.appendChild(article);
 });
-const status=document.getElementById("status");
+}
+function fitVisible(){
+if(!map)return;
+const visible=places.filter(matches);
+if(visible.length===1){
+map.setView([visible[0].lat,visible[0].lng],15);
+}else{
+map.fitBounds(visible.map(p=>[p.lat,p.lng]),{padding:[35,35]});
+}
+}
+function updateMap(){
+if(!map)return;
+places.forEach(p=>{
+const marker=markers[p.id];
+if(matches(p)){
+if(!map.hasLayer(marker))marker.addTo(map);
+}else if(map.hasLayer(marker)){
+map.removeLayer(marker);
+}
+});
+fitVisible();
+}
+document.querySelectorAll("[data-filter]").forEach(button=>{
+button.onclick=()=>{
+currentFilter=button.dataset.filter;
+document.querySelectorAll("[data-filter]").forEach(b=>b.classList.toggle("active",b===button));
+drawCards();
+updateMap();
+};
+});
+document.getElementById("reset").onclick=()=>{
+currentFilter="all";
+document.querySelectorAll("[data-filter]").forEach(b=>b.classList.toggle("active",b.dataset.filter==="all"));
+drawCards();
+updateMap();
+};
+drawCards();
+
 if(typeof L!=="undefined"){
-map=L.map("map",{scrollWheelZoom:false}).setView([35.516,138.77],13);
+map=L.map("map",{scrollWheelZoom:false});
 const tiles=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
 maxZoom:19,
 attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
 }).addTo(map);
-tiles.on("load",()=>{status.textContent="可拖曳地圖，使用 ＋／－ 縮放。";});
-tiles.on("tileerror",()=>{status.textContent="部分底圖無法載入；景點清單與 Google 地圖連結仍可使用。";});
+tiles.on("load",()=>statusEl.textContent="點擊編號查看拍攝內容與餐廳；用 ＋／－ 縮放地圖。");
+tiles.on("tileerror",()=>statusEl.textContent="部分底圖可能被預覽環境阻擋；下方 Google 地圖連結仍可使用。");
 places.forEach(p=>{
 const icon=L.divIcon({
-className:"marker"+(p.extra?" extra":""),
-html:String(p.id),iconSize:[32,32],iconAnchor:[16,16],popupAnchor:[0,-17]
+className:"marker "+p.type,
+html:String(p.id),
+iconSize:[34,34],iconAnchor:[17,17],popupAnchor:[0,-18]
 });
-markers[p.id]=L.marker([p.lat,p.lng],{icon,title:p.name}).addTo(map)
-.bindPopup(`<div class="popup-title">${p.id}. ${p.name}</div><div class="popup-note">${p.note}</div><a href="${link(p)}" target="_blank" rel="noopener noreferrer">在 Google 地圖開啟 ↗</a>`);
+const popup=`
+<div class="pop">
+<h3>${p.id}. ${p.name}</h3>
+<p><strong>拍什麼：</strong>${p.photo}</p>
+<p><strong>提醒：</strong>${p.tip}</p>
+<div class="rest"><strong>附近／順路用餐</strong>
+${p.foods.map(f=>`<p><a href="${mapUrl(f.query)}" target="_blank" rel="noopener noreferrer">${f.name} ↗</a><br>${f.text}</p>`).join("")}
+</div>
+<a href="${mapUrl(p.query)}" target="_blank" rel="noopener noreferrer">開啟景點 Google 地圖 ↗</a>
+</div>`;
+markers[p.id]=L.marker([p.lat,p.lng],{icon,title:p.name})
+.bindPopup(popup,{maxWidth:310,maxHeight:330})
+.addTo(map);
 });
-const bounds=L.latLngBounds(places.map(p=>[p.lat,p.lng]));
-function showAll(){map.fitBounds(bounds,{padding:[35,35]});}
-document.getElementById("reset").onclick=showAll;
-showAll();
+fitVisible();
 }else{
-status.textContent="互動地圖未能載入，請使用下方 Google 地圖連結。";
 document.getElementById("map").style.display="none";
-document.getElementById("reset").disabled=true;
+statusEl.textContent="互動地圖未能載入，請使用下方景點與餐廳的 Google 地圖連結。";
 }
 </script>
 </body>
